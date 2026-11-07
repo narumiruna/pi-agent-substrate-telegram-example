@@ -15,6 +15,7 @@ import {
   BOT,
   BOT_TOKEN,
   createFixture,
+  E2E_PROBE,
   e2eTools,
   FINAL_TEXT,
   INJECTED_KEY,
@@ -326,6 +327,36 @@ test("append retains calls and pending updates and refuses ID conflicts atomical
   assert.equal(state.calls.length, 2)
   assert.equal(state.acknowledgedOffset, 51)
   assert.deepEqual(state.updates, [{ update_id: 52 }])
+})
+
+test("inline proof dependencies resolve with ESM import conditions from the application directory", () => {
+  const imports = E2E_PROBE.split("const marker=")[0]
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", imports], {
+    encoding: "utf8",
+    timeout: 300_000,
+  })
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(e2eTools("e2e-seed:0123456789abcdef-a")[1].arguments.command, /^cd \/app && node /)
+})
+
+test("explicit TLS SNI stays valid when the HTTP destination authority changes", async () => {
+  const response = await new Promise((resolve, reject) => {
+    const req = request(
+      `${baseUrl}/development/probe`,
+      { ca: cert, agent: false, servername: "localhost", headers: { host: "api.ate-system.svc" } },
+      (res) => {
+        res.resume()
+        res.on("end", () => resolve(res.statusCode))
+      },
+    )
+    req.on("error", reject)
+    req.end()
+  })
+  assert.equal(response, 200)
+  const record = (await api("/__fixture/state")).data.calls.at(-1)
+  assert.equal(record.headers.host, "api.ate-system.svc")
+  assert.equal(record.tls.servername, "localhost")
+  assert(E2E_PROBE.includes("servername:'development-api.telegram-pi-fixtures.svc'"))
 })
 
 test("packaged E2E scenario streams fixed write, inline read-only proof, and final JSON", async () => {

@@ -407,6 +407,14 @@ async function restartBoundary() {
       state.seeds.some((u: Json) => Number(j.update_id) === u.update_id),
     )
     if (jobs.length !== 3 || Number(db.cursor) <= state.offset + 12) return false
+    assert(
+      !jobs.some(
+        (j: Json) =>
+          ["failed", "recovery_needed"].includes(j.state) ||
+          (j.final_outcome !== null && j.final_outcome !== "succeeded"),
+      ),
+      "Seed failed before the restart boundary; retain it without replay",
+    )
     if (!jobs.some((j: Json) => j.state === "result_awaiting_checkpoint")) return false
     if (
       !db.outbox.some(

@@ -30,13 +30,11 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile,rm,stat,access} from 'node:fs/promises';
 import {join} from 'node:path';
 import {backup,DatabaseSync} from 'node:sqlite';
-import {createRequire} from 'node:module';
 import {request} from 'node:https';
-const require=createRequire('/app/package.json');
-const {BACKGROUND_CONTEXT:ctx}=await import(require.resolve('@earendil-works/chord/context'));
-const {createModels}=await import(require.resolve('@earendil-works/pi-ai/models'));
-const {Harness,ProviderDoc,ROOT_CONVERSATION_ID,createRegistry}=await import(require.resolve('@earendil-works/pi-durable'));
-const {openNodeSqliteStorage}=await import(require.resolve('@earendil-works/pi-durable/storage/sqlite/node'));
+import {BACKGROUND_CONTEXT as ctx} from '@earendil-works/chord/context';
+import {createModels} from '@earendil-works/pi-ai/models';
+import {Harness,ProviderDoc,ROOT_CONVERSATION_ID,createRegistry} from '@earendil-works/pi-durable';
+import {openNodeSqliteStorage} from '@earendil-works/pi-durable/storage/sqlite/node';
 const marker=process.argv[1];
 assert.match(marker,/^[a-f0-9]{16}-[a-e]$/);
 const workspace=await readFile('/data/workspace/e2e-topic.txt','utf8');
@@ -65,7 +63,7 @@ try{
   // not merely fail DNS, certificate validation, or connection setup.
   async function probe(host){return new Promise((resolve,reject)=>{
     const req=request('https://development-api.telegram-pi-fixtures.svc/development/probe',
-      {agent:false,headers:host?{host}:{}},res=>{let body='';res.on('data',c=>body+=c);res.on('end',()=>resolve({status:res.statusCode,body}));});
+      {agent:false,servername:'development-api.telegram-pi-fixtures.svc',headers:host?{host}:{}},res=>{let body='';res.on('data',c=>body+=c);res.on('end',()=>resolve({status:res.statusCode,body}));});
     req.setTimeout(10000,()=>req.destroy(new Error('probe_timeout')));req.on('error',reject);req.end();
   });}
   const before=await probe(); assert.equal(before.status,200);assert.equal(JSON.parse(before.body).authorization,null);
@@ -81,7 +79,7 @@ try{
 export function e2eTools(text) {
   const match = /^e2e-(seed|verify):([a-f0-9]{16}-[a-e])$/.exec(text)
   if (!match) return undefined
-  const command = `node --input-type=module -e '${E2E_PROBE.replaceAll("'", "'\\''")}' ${match[2]}`
+  const command = `cd /app && node --input-type=module -e '${E2E_PROBE.replaceAll("'", "'\\''")}' ${match[2]}`
   return [
     ...(match[1] === "seed"
       ? [{ name: "write", arguments: { path: "e2e-topic.txt", content: `${match[2]}\n` } }]
