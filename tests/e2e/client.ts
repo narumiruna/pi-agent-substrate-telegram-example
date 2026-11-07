@@ -143,7 +143,7 @@ function update(
   chat: number,
   thread: number | undefined,
   text: string,
-  sender = 101,
+  sender = 102825484,
   trigger = true,
 ) {
   return {
@@ -363,7 +363,7 @@ async function reject() {
   const id = state.offset
   const rejected = [
     update(id, state.chats[0] + 20, undefined, `rejected:${run}:unauthorized`, 102),
-    update(id + 1, state.chats[1] - 20, 1, `rejected:${run}:nontrigger`, 101, false),
+    update(id + 1, state.chats[1] - 20, 1, `rejected:${run}:nontrigger`, 102825484, false),
     {
       ...update(id + 2, state.chats[0] + 21, undefined, `rejected:${run}:anonymous`),
       message: {

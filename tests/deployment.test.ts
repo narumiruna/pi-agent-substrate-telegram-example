@@ -147,6 +147,7 @@ describe("deployment packaging", () => {
     })
     expect(migrationEnv.DATABASE_APPLICATION_ROLE).toBe("telegram_pi_gateway")
     expect(gatewayEnv.TELEGRAM_TOKEN_FILE).toBe("/var/run/telegram/token")
+    expect(gatewayEnv.TELEGRAM_ALLOWED_USER_IDS).toBe("102825484")
     expect(gatewayEnv.OPENAI_API_KEY).toBe("substrate-egress-placeholder")
     expect(gatewayEnv.MAX_ACTIVE_DISPATCH).toBe("2")
     expect(envMap(provision.containers[0].env)).not.toHaveProperty("DATABASE_URL")
