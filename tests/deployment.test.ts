@@ -193,6 +193,39 @@ describe("deployment packaging", () => {
     )
   })
 
+  it("matches Secret data keys to .env names without mounting model credentials", () => {
+    const defaults = parse(readFileSync(resolve(chart, "values.yaml"), "utf8"))
+    expect(defaults.existingSecrets.telegram.key).toBe("BOT_TOKEN")
+    expect(values.existingSecrets.telegram.key).toBe("BOT_TOKEN")
+    const objects = decode(render())
+    const gateway = objects.find((o) => o.kind === "Deployment").spec.template.spec
+    const botSecret = gateway.volumes.find((v: { name: string }) => v.name === "telegram-token")
+      .projected.sources
+    expect(botSecret).toEqual([
+      { secret: { name: "telegram-bot", items: [{ key: "BOT_TOKEN", path: "token" }] } },
+    ])
+    const uri = "ate-secret://k8s.io/default/telegram-pi-llm/openai-fixture/OPENAI_API_KEY"
+    expect(values.openai.credentialUri).toBe(uri)
+    for (const object of objects.filter((o) => ["Deployment", "Job"].includes(o.kind))) {
+      const pod = object.spec.template.spec
+      if (pod.serviceAccountName === "migration") continue
+      const env = envMap(pod.containers[0].env)
+      expect(env.LLM_CREDENTIAL_URI).toBe(uri)
+      expect(env.OPENAI_API_KEY).toBe("substrate-egress-placeholder")
+    }
+    const llm = resource(
+      readFileSync(resolve(root, "tests/kind/actor-credential-provider.yaml"), "utf8"),
+      "Secret",
+      "openai-fixture",
+    )
+    expect(Object.keys(llm.stringData)).toEqual(["OPENAI_API_KEY"])
+    const client = resource(
+      readFileSync(resolve(root, "tests/kind/actor-client.yaml.tmpl"), "utf8"),
+      "Pod",
+    )
+    expect(envMap(client.spec.containers[0].env).ACTOR_CREDENTIAL_URI).toBe(uri)
+  })
+
   it("projects live service-DNS trust and ECDSAP256 Pod identity without subPath", () => {
     const text = render()
     expect(resource(text, "Namespace").metadata.labels["ate.dev/api-access"]).toBe("true")
@@ -238,6 +271,13 @@ describe("deployment packaging", () => {
     expect(worker.spec.workerImage).toMatch(/@sha256:[a-f0-9]{64}$/)
     expect(worker.spec.workerImage).not.toBe(values.images.actor)
     const template = buildActorTemplate(templateConfig())
+    expect(values.substrate.actorTemplate).toBe("pi-v3-kind")
+    expect(values.openai.model).toBe("gpt-5.6-luna")
+    expect(values.openai.modelMetadata).toBe("gpt-5.6-luna")
+    expect(envMap(template.containers[0].env)).toMatchObject({
+      OPENAI_MODEL: "gpt-5.6-luna",
+      OPENAI_MODEL_METADATA: "gpt-5.6-luna",
+    })
     expect(template.containers[0].image).toBe(values.images.actor)
     expect(template.workerSelector?.matchLabels).toEqual({ workload: "telegram-pi" })
     expect(template.containers[0].env.find((e) => e.name === "OPENAI_API_KEY")?.value).toBe(

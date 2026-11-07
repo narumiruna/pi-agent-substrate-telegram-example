@@ -162,7 +162,7 @@ Cleanup checks the saved Docker node ID and registry ownership label before remo
 
 ## Verification record
 
-Last full packaged run: `3231e27957db65a3`, exit `0`, reviewed runtime revision `7bb4b3a1b5ccfb44eda408778ac187a7e499c31e`. Evidence remains under `.cache/e2e/3231e27957db65a3/`. The later status-poll fix has separate PostgreSQL, CI, and image checks below. The full packaged test was not repeated for that fix.
+Last full packaged run: `3231e27957db65a3`, exit `0`, reviewed runtime revision `7bb4b3a1b5ccfb44eda408778ac187a7e499c31e`. Evidence remains under `.cache/e2e/3231e27957db65a3/`. Later status-poll, model, and Secret key changes have separate checks below. The full packaged test was not repeated for those changes.
 
 - Both Argo Applications reached `Synced`, `Healthy`, and `Succeeded` at the same immutable revision before testing and after two repeat syncs.
 - Three fresh chat/topic Actors shared exactly two workers; observed occupancy never exceeded two. Their files, raw Pi history, and UUIDv5 provider identities remained separate.
@@ -198,9 +198,9 @@ Earlier discovery evidence:
   - MEMORY Actor UID `d3ba0f2e-f048-4789-8e95-0970177a98ef`, private generation 2 UUID `6adc7295-7cb9-491c-8ee7-2c2e13a1a165`: process instance retained; 11 remote logical files verified.
   - Cold Actor UID `2b3736d2-3800-4eb1-804a-db3b0cc207c5`, VOLUMES generation 2 UUID `bc30b771-9a93-4fe4-b0ab-d103ef81ba80`: process instance changed; 4 remote logical files verified.
   - Exact latest completed Actor-owned snapshots were reverted only after upload completion. Local checkpoint removal and PRIVATE snapshot sharing excluded the shared cache path. Restore trace IDs and file-size sets correlate plugin downloads with those UUIDs.
-- Current source gates: `npm run ci` passes 251 default tests, 9 HTTPS fixture tests, strict type checks, Biome, and build. The separate PostgreSQL harness passes 121 cases across five suites. Offline E2E safety and bootstrap checks pass 10 cases. Review fixes cover suspend workflow re-entry, capacity after restart, partial-effect timeout/write failures, corrected edit validation, text admission, trust refresh, and explicit permanent provisioning recovery.
+- Current source gates: `npm run ci` passes 252 default tests, 9 HTTPS fixture tests, strict type checks, Biome, and build. The separate PostgreSQL harness passes 121 cases across five suites. Offline E2E safety and bootstrap checks pass 11 cases. Review fixes cover suspend workflow re-entry, capacity after restart, partial-effect timeout/write failures, corrected edit validation, text admission, trust refresh, and explicit permanent provisioning recovery.
 - The status-poll review fix has eight real PostgreSQL regression cases. All eight fail before the fix and pass after it. They cover late transport/HTTP failures, receipt-based window reset, interruptible unknown status, and confirmed missing requests. One POST, stable submission identity, blocked later work for genuine absence, and checkpoint-gated replies remain enforced. The rebuilt Gateway image is pinned in `values-kind.yaml` and pushed only to the owned local registry.
-- Production Actor and Gateway image builds and local pushes pass. Helm lint, 21 deployment tests, pinned platform reproduction, and earlier server-side dry-runs pass. The full packaged run above establishes the earlier local runtime baseline. Live external acceptance remains separate.
+- Production Actor and Gateway image builds and local pushes pass. Helm lint, 22 deployment tests, pinned platform reproduction, and earlier server-side dry-runs pass. The full packaged run above establishes the earlier local runtime baseline. Live external acceptance remains separate.
 
 ## Isolated validation sequence
 
@@ -229,11 +229,15 @@ The initial Argo adoption exposed missing installer flags and a literal-to-Secre
 
 The first packaged probe failed before network access because a package exposes only ESM imports. A later parallel run completed and delivered three jobs but exposed duplicated Pi provider session IDs. Both failures remain in ignored local evidence. The fixed Actor uses a new immutable template; old validation Actors and their persisted provider IDs are not automatically rewritten or reused as proof.
 
+The current kind inputs select `gpt-5.6-luna` and a new immutable template, `pi-v3-kind`. Local tests verify the installed model metadata and its Responses `additional_tools` protocol. This is not a live model availability check or a deployed cluster test. Existing Actors and their history are not migrated to the new template. Use only synthetic values in the new Secret data keys while fixture endpoints are selected.
+
 ## Private Secret setup
 
 The local preparation scripts create only synthetic fixture credentials under private `.cache/` directories and existing Kubernetes Secret references. Never copy these values into a real deployment.
 
 For an approved non-local target, the operator must create the two separate database logins and provide their URLs in separate existing Secrets. Supply the Bot token and model key from private files with mode `0600`, using `kubectl create secret generic --from-file` with the explicitly approved kubeconfig, context, namespace, and key names. Do not place values in shell arguments, chart values, command history, Git, images, or chat. Label the LLM Secret for the provider policy and retain its one-Secret read Role. The Bot Secret must remain outside that namespace. The application chart does not create or rotate these Secrets.
+
+Secret data keys match the local `.env` names: `telegram-pi/telegram-bot:BOT_TOKEN` and `telegram-pi-llm/openai-fixture:OPENAI_API_KEY`. The Gateway still reads the projected file `/var/run/telegram/token`. `OPENAI_BASE_URL` is configuration, not a Secret data key; set it through `openai.baseUrl`. Keep Bot and model credentials in separate Secrets. Do not import the complete `.env` into both Secrets. Existing installations with `token` or `api-key` need matching new keys before these references are deployed; no automatic credential migration is performed.
 
 ## External handoff
 

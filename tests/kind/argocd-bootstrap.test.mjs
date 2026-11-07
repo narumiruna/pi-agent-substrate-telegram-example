@@ -124,6 +124,35 @@ test("Argo source and every container image have immutable pins", () => {
   }
 })
 
+test("application fixture creates only BOT_TOKEN in the Bot Secret", () => {
+  const source = load("scripts/prepare-application-db-kind.sh")
+  const marker = "node --input-type=module - \"$state\" <<'JS'\n"
+  const start = source.indexOf(marker)
+  assert.notEqual(start, -1)
+  const bodyStart = start + marker.length
+  const end = source.indexOf("\nJS\n", bodyStart)
+  assert.notEqual(end, -1)
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "telegram-pi-secret-keys-test-"))
+  try {
+    const result = spawnSync(process.execPath, ["--input-type=module", "-", dir], {
+      cwd: root,
+      input: source.slice(bodyStart, end),
+      encoding: "utf8",
+      timeout: 30_000,
+    })
+    assert.equal(result.status, 0, result.stderr)
+    const resources = JSON.parse(fs.readFileSync(path.join(dir, "resources.private.json")))
+    const bot = resources.items.find(
+      (o) => o.kind === "Secret" && o.metadata.name === "telegram-bot",
+    )
+    assert.equal(bot.metadata.namespace, "telegram-pi")
+    assert.deepEqual(Object.keys(bot.data), ["BOT_TOKEN"])
+    assert.equal(Buffer.from(bot.data.BOT_TOKEN, "base64").toString(), "900001:fixture-only")
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
 test("database fixture uses persistent separate storage and chart-compatible labels", () => {
   const docs = parseAllDocuments(load("tests/kind/application-postgres.yaml")).map((d) => d.toJS())
   assert(docs.every((d) => d.metadata.namespace === "telegram-pi" && d.kind !== "Secret"))

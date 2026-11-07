@@ -24,7 +24,7 @@ existingSecrets:
     key: url
   telegram:
     name: telegram-bot
-    key: token
+    key: BOT_TOKEN
 # Exact post-DNAT Kubernetes API endpoint for GET of the named WorkerPool.
 # Supply its IPv4 /32 and port; no broader private-network access is needed.
 kubernetesApi:
