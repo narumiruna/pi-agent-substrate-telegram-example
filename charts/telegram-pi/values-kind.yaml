@@ -14,7 +14,7 @@ openai:
 developmentHosts:
   - development-api.telegram-pi-fixtures.svc
 telegram:
-  allowedUserIds: ["101"]
+  allowedUserIds: ["102825484"]
   apiBaseUrl: https://synthetic-api.telegram-pi-fixtures.svc
 existingSecrets:
   database:

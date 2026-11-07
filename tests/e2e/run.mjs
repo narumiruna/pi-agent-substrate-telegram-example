@@ -262,7 +262,7 @@ try {
   assert.match(gateway.image, /^localhost:25071\/telegram-pi-gateway@sha256:[a-f0-9]{64}$/)
   const env = (name) => gateway.env.find((e) => e.name === name)
   assert.equal(env("TELEGRAM_API_BASE_URL").value, "https://synthetic-api.telegram-pi-fixtures.svc")
-  assert.equal(env("TELEGRAM_ALLOWED_USER_IDS").value, "101")
+  assert.equal(env("TELEGRAM_ALLOWED_USER_IDS").value, "102825484")
   assert.equal(env("WORKER_POOL_NAME").value, "telegram-pi")
   const dbSecret = env("DATABASE_URL").valueFrom.secretKeyRef
   assert.equal(dbSecret.name, "telegram-pi-database-app")
