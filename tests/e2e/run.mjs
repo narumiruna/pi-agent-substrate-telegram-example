@@ -344,6 +344,21 @@ try {
         },
       },
       {
+        apiVersion: "networking.k8s.io/v1",
+        kind: "NetworkPolicy",
+        metadata: { name: `${pod}-database`, namespace: ns },
+        spec: {
+          podSelector: { matchLabels: { app: "telegram-pi-postgres" } },
+          policyTypes: ["Ingress"],
+          ingress: [
+            {
+              from: [{ podSelector: { matchLabels: { "telegram-pi/e2e-run": runId } } }],
+              ports: [{ protocol: "TCP", port: 5432 }],
+            },
+          ],
+        },
+      },
+      {
         apiVersion: "v1",
         kind: "Pod",
         metadata: { name: pod, namespace: ns, labels: { "telegram-pi/e2e-run": runId } },

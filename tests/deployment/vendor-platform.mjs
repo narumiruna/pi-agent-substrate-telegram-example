@@ -107,6 +107,19 @@ function transform(objects) {
         }
       }
     }
+    if (o.metadata.name === "ate-api-server") {
+      pod.containers
+        .find((c) => c.name === "ate-api-server")
+        .args.push(
+          "--preview=",
+          "--authz-bootstrap-owners=system:serviceaccount:ate-system:substrate-bootstrap",
+        )
+    }
+    if (o.metadata.name === "ate-idp-server") {
+      pod.containers
+        .find((c) => c.name === "ate-idp-server")
+        .args.push("--issuer=https://idp.ate-system.svc", "--preview=")
+    }
     if (o.metadata.name === "atenet-router") {
       pod.containers
         .find((c) => c.name === "atenet-router")

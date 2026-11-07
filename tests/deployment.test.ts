@@ -340,6 +340,14 @@ describe("deployment packaging", () => {
     const lock = JSON.parse(readFileSync(resolve(root, "deploy/platform/images.lock.json"), "utf8"))
     expect(lock.revision).toBe("94e0a26ac90151886a76410568aaac2664a54d90")
     const api = objects.find((o) => o.kind === "Deployment" && o.metadata.name === "ate-api-server")
+    expect(
+      api.spec.template.spec.containers.find((c: { name: string }) => c.name === "ate-api-server")
+        .args,
+    ).toContain("--authz-bootstrap-owners=system:serviceaccount:ate-system:substrate-bootstrap")
+    const idp = objects.find((o) => o.kind === "Deployment" && o.metadata.name === "ate-idp-server")
+    expect(idp.spec.template.spec.containers[0].args).toContain(
+      "--issuer=https://idp.ate-system.svc",
+    )
     const plugin = api.spec.template.spec.initContainers.find(
       (c: { name: string }) => c.name === "objectstore-plugin",
     )

@@ -979,6 +979,8 @@ spec:
             - --drain-timeout=15s
             - --objectstore-plugin-socket=/run/objectstore-plugin/control.sock
             - --snapshot-location=@env
+            - --preview=
+            - --authz-bootstrap-owners=system:serviceaccount:ate-system:substrate-bootstrap
           env:
             - name: OTEL_TRACES_SAMPLER
               value: parentbased_always_on
@@ -1318,6 +1320,8 @@ spec:
         - args:
             - --actor-id-jwt-pool=/run/actor-id-jwt-pool/pool.json
             - --server-cred-bundle=/run/servicedns.podcert.ate.dev/credential-bundle.pem
+            - --issuer=https://idp.ate-system.svc
+            - --preview=
           image: localhost:25071/ate-idp-server@sha256:d0776df6bd3327f82203c12e212c1fea9f08d192ebace3cd1c1e21743bb63462
           livenessProbe:
             httpGet:
