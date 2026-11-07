@@ -121,9 +121,16 @@ function json(response: ActorResponse): Record<string, unknown> {
 }
 function receipt(response: ActorResponse, job: Job): Receipt | null {
   if (response.statusCode === 404) return null
-  const body = json(response)
+  const success = response.statusCode === 200 || response.statusCode === 202
+  let body: Record<string, unknown>
+  try {
+    body = json(response)
+  } catch (error) {
+    if (success) throw error
+    throw new Error("actor_status_unavailable")
+  }
   if (body.error === "recovery_required") throw new Recovery("actor_recovery_required")
-  if (response.statusCode !== 200 && response.statusCode !== 202) return null
+  if (!success) throw new Error("actor_status_unavailable")
   if (
     body.requestId !== job.requestId ||
     typeof body.submissionId !== "string" ||
@@ -498,7 +505,7 @@ export class GatewayDispatcher {
     } else if (!running(actor) || generation(actor) !== job.admissionGeneration) {
       throw new Recovery("attempted_actor_state_changed")
     }
-    const missingUntil = Date.now() + this.reconcileMs
+    let missingUntil: number | undefined
     let result: Receipt
     for (;;) {
       lease.signal.throwIfAborted()
@@ -506,7 +513,8 @@ export class GatewayDispatcher {
       actor = await this.getActor(name, uid, lease)
       if (!running(actor) || generation(actor) !== job.admissionGeneration)
         throw new Recovery("attempted_actor_state_changed")
-      let found: Receipt | null = null
+      // Undefined is an unknown observation. Only a confirmed 404 starts the absence window.
+      let found: Receipt | null | undefined
       try {
         found = receipt(
           await this.actorHttp(
@@ -521,9 +529,11 @@ export class GatewayDispatcher {
         if (error instanceof Recovery) throw error
         lease.signal.throwIfAborted()
       }
-      if (!found) {
+      if (found === null) {
+        missingUntil ??= Date.now() + this.reconcileMs
         if (Date.now() >= missingUntil) throw new Recovery("attempted_request_missing")
-      } else {
+      } else if (found !== undefined) {
+        missingUntil = undefined
         const id = found.submissionId
         job = await this.mutate(
           lease,

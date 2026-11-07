@@ -138,7 +138,7 @@ The application database stores admission and delivery state, not a second Pi tr
 
 - Polling stores accepted updates and the next offset in one transaction. On a lost commit response, read the cursor and accepted job identities before acknowledging another offset. Never assume rollback from an exception.
 - A dedicated PostgreSQL session advisory lock selects one Gateway per stable Bot ID. Connection loss stops admission and local waits; do not silently replace the leader session.
-- Each conversation has fenced ownership, a pinned Actor UID, and one active job. Record the Actor generation and submission intent before POST. An attempted request that cannot be found enters recovery; it is not automatically submitted again.
+- Each conversation has fenced ownership, a pinned Actor UID, and one active job. Record the Actor generation and submission intent before POST. Only confirmed HTTP 404 status responses start the 30-second absence window. A valid receipt clears that window. A transport or HTTP failure does not prove absence. Repeated confirmed absence enters recovery; the Gateway does not submit the request again.
 - Final results create blocked outbox chunks. Record suspend generation intent and the observed snapshot UUID. Release chunks only after the exact Actor UID and latest intended generation/UUID have a nonempty remote URI and `COMPLETED` state.
 - Outbox send intent is committed before HTTP. Save each returned Telegram message ID. A known 429 schedules `retry_after`; a known permanent error remains `failed` and blocks later chunks.
 - An expired send intent or lost send response is `uncertain`, never an automatic resend. Operator resolution uses `resolveUncertainReply` with the current revision and explicit sent/not-sent evidence. Do not infer delivery from process restart or absence of a receipt.
@@ -162,7 +162,7 @@ Cleanup checks the saved Docker node ID and registry ownership label before remo
 
 ## Verification record
 
-Final packaged run: `3231e27957db65a3`, exit `0`, reviewed runtime revision `7bb4b3a1b5ccfb44eda408778ac187a7e499c31e`. Evidence remains under `.cache/e2e/3231e27957db65a3/`. Final documentation-only changes do not alter the verified source, chart, or platform artifacts.
+Last full packaged run: `3231e27957db65a3`, exit `0`, reviewed runtime revision `7bb4b3a1b5ccfb44eda408778ac187a7e499c31e`. Evidence remains under `.cache/e2e/3231e27957db65a3/`. The later status-poll fix has separate PostgreSQL, CI, and image checks below. The full packaged test was not repeated for that fix.
 
 - Both Argo Applications reached `Synced`, `Healthy`, and `Succeeded` at the same immutable revision before testing and after two repeat syncs.
 - Three fresh chat/topic Actors shared exactly two workers; observed occupancy never exceeded two. Their files, raw Pi history, and UUIDv5 provider identities remained separate.
@@ -198,8 +198,9 @@ Earlier discovery evidence:
   - MEMORY Actor UID `d3ba0f2e-f048-4789-8e95-0970177a98ef`, private generation 2 UUID `6adc7295-7cb9-491c-8ee7-2c2e13a1a165`: process instance retained; 11 remote logical files verified.
   - Cold Actor UID `2b3736d2-3800-4eb1-804a-db3b0cc207c5`, VOLUMES generation 2 UUID `bc30b771-9a93-4fe4-b0ab-d103ef81ba80`: process instance changed; 4 remote logical files verified.
   - Exact latest completed Actor-owned snapshots were reverted only after upload completion. Local checkpoint removal and PRIVATE snapshot sharing excluded the shared cache path. Restore trace IDs and file-size sets correlate plugin downloads with those UUIDs.
-- Current source gates: `npm run ci` passes 251 default tests, 9 HTTPS fixture tests, strict type checks, Biome, and build. The separate PostgreSQL harness passes 113 cases across five suites. Offline E2E safety and bootstrap checks pass 10 cases. Review fixes cover suspend workflow re-entry, capacity after restart, partial-effect timeout/write failures, corrected edit validation, text admission, trust refresh, and explicit permanent provisioning recovery.
-- Production Actor and Gateway image builds and local pushes pass. Helm lint, 21 deployment tests, pinned platform reproduction, and server-side dry-runs pass. The final PostgreSQL run passes 110 cases across five suites. The final packaged run above completes the local runtime gate. GitHub CI also passes; live external acceptance remains separate.
+- Current source gates: `npm run ci` passes 251 default tests, 9 HTTPS fixture tests, strict type checks, Biome, and build. The separate PostgreSQL harness passes 121 cases across five suites. Offline E2E safety and bootstrap checks pass 10 cases. Review fixes cover suspend workflow re-entry, capacity after restart, partial-effect timeout/write failures, corrected edit validation, text admission, trust refresh, and explicit permanent provisioning recovery.
+- The status-poll review fix has eight real PostgreSQL regression cases. All eight fail before the fix and pass after it. They cover late transport/HTTP failures, receipt-based window reset, interruptible unknown status, and confirmed missing requests. One POST, stable submission identity, blocked later work for genuine absence, and checkpoint-gated replies remain enforced. The rebuilt Gateway image is pinned in `values-kind.yaml` and pushed only to the owned local registry.
+- Production Actor and Gateway image builds and local pushes pass. Helm lint, 21 deployment tests, pinned platform reproduction, and earlier server-side dry-runs pass. The full packaged run above establishes the earlier local runtime baseline. Live external acceptance remains separate.
 
 ## Isolated validation sequence
 

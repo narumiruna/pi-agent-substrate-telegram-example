@@ -1,6 +1,6 @@
 # Fixture-only inputs for kind-telegram-pi-validation. No credential values.
 images:
-  gateway: localhost:25071/telegram-pi-gateway@sha256:c8d66078834ed3d735f8029a66181b876eeaf441057de901fc203f282001640d
+  gateway: localhost:25071/telegram-pi-gateway@sha256:a3bfaf7e747dec23faf251250d1b8e0318a57a6f7b39660d5dc4d03263cf3f6e
   actor: localhost:25071/telegram-pi-actor@sha256:df5a06237eb01e85db0eabc2e2f81545ec923eecc8af3352ed846ab35613f30b
   worker: localhost:25071/ateworker-gvisor-6ba39372e3cc3b4b39febbff4256f962@sha256:86195735c240e8bd087055e240d1e9156cc2d1a24342d64700e96a49df318bd3
 substrate:

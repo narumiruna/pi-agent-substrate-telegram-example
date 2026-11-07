@@ -13,11 +13,11 @@ import { prepareDatabase } from "../src/gateway/migrate.js"
 import { migrate, migrations } from "../src/gateway/migrations.js"
 import { conversationKey, GatewayStore } from "../src/gateway/store.js"
 import { TelegramClient } from "../src/gateway/telegram.js"
-import type { SubstrateClient } from "../src/substrate/client.js"
+import type { ActorResponse, SubstrateClient } from "../src/substrate/client.js"
 import { ActorState, SnapshotStorageState } from "../src/substrate/generated/ateapi/v1/ateapi.js"
 import { type ensureTemplate, ProvisionConflict } from "../src/substrate/provision.js"
 import { fixture as piFixture } from "./actor/helpers.js"
-import { actorFixture, atespace, egress } from "./dispatch-fixture.js"
+import { actorFixture, atespace, egress, response } from "./dispatch-fixture.js"
 
 const ownerUrl = process.env.STORE_TEST_OWNER_URL
 const appUrl = process.env.STORE_TEST_APP_URL
@@ -45,6 +45,20 @@ function dispatcher(saved: DispatchStore = store, capacity = async () => 2) {
     reconciliationMs: 30,
     checkpointWaitMs: 30,
     rpcTimeoutMs: 1000,
+  })
+}
+function statusDispatcher(observe: (next: () => Promise<ActorResponse>) => Promise<ActorResponse>) {
+  return new GatewayDispatcher({
+    ...dispatcher().options,
+    client: {
+      ...fixture.client,
+      actor: (target, input, wait) => {
+        const next = () => fixture.client.actor(target, input, wait)
+        return input.method === "GET" && input.path.startsWith("/v1/submissions?")
+          ? observe(next)
+          : next()
+      },
+    },
   })
 }
 async function accept(chats = ["100"], start = 0) {
@@ -324,6 +338,142 @@ describe("serialized dispatch with real PostgreSQL and explicit API/Actor faults
     expect(fixture.events[0]).toBe("getActor")
     expect(fixture.events).not.toContain("POST /v1/submissions")
     expect((await store.getJob(request))?.submissionId).toBe("1")
+  })
+
+  it.each(["disconnect", "json_503", "plain_503", "plain_429"])(
+    "reattaches after a late %s status failure without replay or early delivery",
+    async (fault) => {
+      await accept()
+      fixture.pendingRuns = true
+      let polls = 0
+      const dispatch = statusDispatcher(async (next) => {
+        polls++
+        if (polls === 1) {
+          const pending = await next()
+          await sleep(45) // Pending work can exceed the 30 ms absence window.
+          return pending
+        }
+        if (polls === 2) {
+          expect((await store.getJob(request))?.submissionId).toBe("1")
+          expect(await store.getOutbox(request)).toEqual([])
+          expect(fixture.events).not.toContain("suspendActor")
+          if (fault === "disconnect") throw new Error("Injected status disconnect")
+          if (fault === "json_503") return response({ error: "http_timeout" }, 503)
+          return {
+            statusCode: fault === "plain_429" ? 429 : 503,
+            headers: {},
+            body: Buffer.from("Temporarily unavailable"),
+          }
+        }
+        const saved = fixture.receipts.get(request)
+        if (!saved) throw new Error("Missing fixture receipt")
+        saved.status = "done"
+        return next()
+      })
+      expect(await dispatch.dispatchConversation(key)).toBe("completed")
+      expect(polls).toBe(3)
+      expect(fixture.events.filter((event) => event === "POST /v1/submissions")).toHaveLength(1)
+      expect(await store.getJob(request)).toMatchObject({
+        state: "completed",
+        submissionId: "1",
+        checkpoint: { generation: "2" },
+      })
+      expect((await store.getOutbox(request))[0].state).toBe("pending")
+    },
+  )
+
+  it("clears an earlier absence window after a valid pending receipt", async () => {
+    await accept()
+    fixture.pendingRuns = true
+    let polls = 0
+    const dispatch = statusDispatcher(async (next) => {
+      polls++
+      if (polls === 1 || polls === 3) return response({ error: "not_found" }, 404)
+      if (polls === 2) {
+        const pending = await next()
+        await sleep(45)
+        return pending
+      }
+      const saved = fixture.receipts.get(request)
+      if (!saved) throw new Error("Missing fixture receipt")
+      saved.status = "done"
+      return next()
+    })
+    expect(await dispatch.dispatchConversation(key)).toBe("completed")
+    expect(polls).toBe(4)
+    expect(fixture.events.filter((event) => event === "POST /v1/submissions")).toHaveLength(1)
+  })
+
+  it("does not infer absence from a failed first status request", async () => {
+    await accept()
+    let polls = 0
+    const dispatch = statusDispatcher(async (next) => {
+      if (++polls === 1) {
+        await sleep(45)
+        throw new Error("Injected status disconnect")
+      }
+      return next()
+    })
+    expect(await dispatch.dispatchConversation(key)).toBe("completed")
+    expect(polls).toBe(2)
+    expect(fixture.events.filter((event) => event === "POST /v1/submissions")).toHaveLength(1)
+  })
+
+  it("keeps repeated unknown observations interruptible without claiming the request is missing", async () => {
+    await accept()
+    fixture.pendingRuns = true
+    const stop = new AbortController()
+    let polls = 0
+    const dispatch = statusDispatcher(async (next) => {
+      if (++polls === 1) {
+        const pending = await next()
+        await sleep(45)
+        return pending
+      }
+      if (polls === 3) stop.abort()
+      throw new Error("Injected status disconnect")
+    })
+    expect(await dispatch.dispatchConversation(key, stop.signal)).toBe("interrupted")
+    expect(polls).toBe(3)
+    expect(await store.getJob(request)).toMatchObject({
+      state: "running",
+      submissionAttempted: true,
+      submissionId: "1",
+      admissionGeneration: "1",
+    })
+    expect(await store.getOutbox(request)).toEqual([])
+    expect(fixture.events).not.toContain("suspendActor")
+    expect(fixture.events.filter((event) => event === "POST /v1/submissions")).toHaveLength(1)
+  })
+
+  it("requires confirmed absence for a new window after long pending work", async () => {
+    await accept(["100", "100"])
+    fixture.pendingRuns = true
+    let polls = 0
+    const dispatch = statusDispatcher(async (next) => {
+      if (++polls === 1) {
+        const pending = await next()
+        await sleep(45)
+        return pending
+      }
+      fixture.receipts.delete(request)
+      return next()
+    })
+    expect(await dispatch.dispatchConversation(key)).toBe("recovery_needed")
+    expect(polls).toBeGreaterThan(2)
+    expect(await store.getJob(request)).toMatchObject({
+      state: "recovery_needed",
+      reason: "attempted_request_missing",
+      submissionAttempted: true,
+      submissionId: "1",
+      admissionGeneration: "1",
+    })
+    expect((await store.getConversation(key))?.actorUid).toBeTruthy()
+    expect((await store.getJob("telegram:500:1"))?.state).toBe("queued")
+    expect(await store.listDispatchWork(botId)).toEqual([])
+    expect(await store.getOutbox(request)).toEqual([])
+    expect(fixture.events).not.toContain("suspendActor")
+    expect(fixture.events.filter((event) => event === "POST /v1/submissions")).toHaveLength(1)
   })
 
   it("an attempted missing request becomes explicit recovery, with no blind replay", async () => {
