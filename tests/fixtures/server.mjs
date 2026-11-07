@@ -14,7 +14,7 @@ export const BOT = {
   can_read_all_group_messages: true,
   supports_inline_queries: false,
 }
-export const MODEL_ID = "gpt-4o-mini"
+export const MODEL_ID = "gpt-5.6-luna"
 export const PLACEHOLDER_KEY = "substrate-egress-placeholder"
 export const INJECTED_KEY = "fixture-injected-openai-key"
 export const TOOL_ARGUMENTS = {
@@ -168,7 +168,7 @@ function responseEvents(body) {
     !Array.isArray(body.input) ||
     !body.input.every(object)
   ) {
-    fail(400, "Expected gpt-4o-mini OpenAI Responses with stream:true and store:false")
+    fail(400, `Expected ${MODEL_ID} OpenAI Responses with stream:true and store:false`)
   }
   const userIndex = body.input.findLastIndex((item) => item.role === "user")
   if (userIndex < 0) fail(400, "Expected a user message")
@@ -194,6 +194,12 @@ function responseEvents(body) {
   const itemId = `fc_fixture_${suffix}${step}`
   const call = turn.findLast((item) => item.type === "function_call")
   const result = turn.findLast((item) => item.type === "function_call_output")
+  const tools = [
+    ...(Array.isArray(body.tools) ? body.tools : []),
+    ...body.input.flatMap((item) =>
+      item.type === "additional_tools" && Array.isArray(item.tools) ? item.tools : [],
+    ),
+  ]
   if (call || result) {
     const previous = scenario?.[completed - 1]
     const previousId = scenario ? `call_fixture_${suffix}_${completed - 1}` : callId
@@ -208,10 +214,7 @@ function responseEvents(body) {
     ) {
       fail(400, "Expected the fixture tool call and its nonempty result")
     }
-  } else if (
-    !Array.isArray(body.tools) ||
-    !body.tools.some((tool) => tool?.type === "function" && tool.name === toolName)
-  ) {
+  } else if (!tools.some((tool) => tool?.type === "function" && tool.name === toolName)) {
     fail(400, "Expected the selected fixture tool")
   }
   let finalText = FINAL_TEXT

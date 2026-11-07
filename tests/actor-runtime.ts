@@ -199,7 +199,7 @@ async function prepare() {
     ["memory", SnapshotFidelity.SNAPSHOT_FIDELITY_MEMORY],
     ["cold", SnapshotFidelity.SNAPSHOT_FIDELITY_VOLUMES],
   ] as const) {
-    const templateName = `pi-${suffix}-${image.split(":").at(-1)?.slice(0, 12)}-wal`
+    const templateName = `pi-${suffix}-${image.split(":").at(-1)?.slice(0, 12)}-luna-wal`
     const name = `${templateName}-${runId}`
     const template = ActorTemplate.create({
       metadata: { atespace, name: templateName },
@@ -214,8 +214,8 @@ async function prepare() {
               value: "https://synthetic-api.telegram-pi-fixtures.svc/openai/v1",
             },
             { name: "OPENAI_API_KEY", value: "substrate-egress-placeholder" },
-            { name: "OPENAI_MODEL", value: "gpt-4o-mini" },
-            { name: "OPENAI_MODEL_METADATA", value: "gpt-4o-mini" },
+            { name: "OPENAI_MODEL", value: "gpt-5.6-luna" },
+            { name: "OPENAI_MODEL_METADATA", value: "gpt-5.6-luna" },
             { name: "NODE_EXTRA_CA_CERTS", value: "/run/ate/identity/ca.crt" },
           ],
           wakeupProbe: { httpGet: { path: "/wakeup", port: 80 }, timeoutSeconds: 30 },

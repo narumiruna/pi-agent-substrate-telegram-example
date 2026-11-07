@@ -169,8 +169,17 @@ test("installed production OpenAI provider streams one write call and its final 
   const catalog = models.getModel("openai", MODEL_ID)
   assert.ok(catalog)
   assert.equal(catalog.api, "openai-responses")
-  assert.equal(catalog.reasoning, false)
-  assert.deepEqual(catalog.compat, { supportsStrictMode: true })
+  assert.equal(catalog.reasoning, true)
+  assert.equal(catalog.contextWindow, 272_000)
+  assert.equal(catalog.maxTokens, 128_000)
+  assert.deepEqual(catalog.compat, {
+    supportsStrictMode: true,
+    supportsOpenAIGrammarTools: true,
+    supportsAdditionalTools: true,
+    supportsToolSearch: true,
+    supportsMidConvoSystemMessages: true,
+    supportsExplicitPromptCacheMode: true,
+  })
   const model = { ...catalog, baseUrl: `${baseUrl}/openai/v1` }
   const context = {
     messages: [{ role: "user", content: "Synthetic tool request", timestamp: 1 }],
@@ -246,7 +255,12 @@ test("installed production OpenAI provider streams one write call and its final 
   assert.equal(calls[0].headers.session_id, "fixture-session-1")
   assert.equal(calls[0].body.prompt_cache_key, "fixture-session-1")
   assert.equal(calls[0].body.store, false)
-  assert.equal(calls[0].body.tools[0].type, "function")
+  assert.equal(calls[0].body.model, "gpt-5.6-luna")
+  assert.equal(calls[0].body.tools, undefined)
+  const addedTools = calls[0].body.input.find((item) => item.type === "additional_tools")
+  assert.ok(addedTools)
+  assert.equal(addedTools.tools[0].type, "function")
+  assert.equal(addedTools.tools[0].name, "write")
   assert.equal(calls[0].tls.servername, "localhost")
   assert.ok(
     calls[1].body.input.some(

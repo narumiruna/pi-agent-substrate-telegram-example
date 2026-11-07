@@ -27,7 +27,7 @@ The application fixture uses PostgreSQL 18 Alpine at the digest retained in `scr
 - Database `telegram_pi` and schema `public` belong to login `telegram_pi_owner`, which is not a superuser.
 - Login `telegram_pi_gateway` is not an owner, superuser, role administrator, or database creator. It initially has only database CONNECT. The chart migration Job must grant its limited runtime access later.
 - This instance has no Substrate database or roles. The script never connects to the platform PostgreSQL instance.
-- Secrets `telegram-pi-database-owner:url`, `telegram-pi-database-app:url`, and `telegram-bot:token` are created in `telegram-pi`. The Bot value is synthetic and fixture-only.
+- Secrets `telegram-pi-database-owner:url`, `telegram-pi-database-app:url`, and `telegram-bot:BOT_TOKEN` are created in `telegram-pi`. The Bot value is synthetic and fixture-only.
 - Secret `telegram-pi-postgres-fixture-admin` stays in the fixture namespace and is mounted only by the database. No chart workload references it. The script does not create Secret-reader RBAC.
 
 Argo CD uses upstream `v3.6.1` **core-install.yaml**, not a Helm chart. `argocd-lock.json` retains the exact source revision, source hash, CLI hash, and resolved container digests. Local rendering changes only ownership labels, image digest pins, namespace placement, and the two documented health keys. The two scoped AppProjects are installed. No Application is installed. All Services remain ClusterIP. There is no deployed Argo API/UI server, Ingress, NodePort, or LoadBalancer.

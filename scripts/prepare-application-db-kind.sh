@@ -47,7 +47,7 @@ const docs=[
  secret('telegram-pi-postgres-fixture-admin',{'admin-password':creds.admin,'owner-password':creds.owner,'app-password':creds.app}),
  secret('telegram-pi-database-owner',{url:`postgresql://telegram_pi_owner:${creds.owner}@${host}`}),
  secret('telegram-pi-database-app',{url:`postgresql://telegram_pi_gateway:${creds.app}@${host}`}),
- secret('telegram-bot',{token:'900001:fixture-only'}),
+ secret('telegram-bot',{BOT_TOKEN:'900001:fixture-only'}),
  ...parseAllDocuments(fs.readFileSync('tests/kind/application-postgres.yaml','utf8')).map(d=>d.toJS())
 ];
 for(const d of docs){

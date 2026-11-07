@@ -31,11 +31,11 @@ bash scripts/kind-fixtures.sh check
 | Synthetic Bot token         | `900001:fixture-only`                                      |
 | Synthetic Bot ID / username | `900001` / `telegram_pi_fixture_bot`                       |
 | OpenAI base                 | `https://synthetic-api.telegram-pi-fixtures.svc/openai/v1` |
-| Selected catalog model      | OpenAI `gpt-4o-mini`, Pi AI `1.5.0`, `openai-responses`    |
+| Selected catalog model      | OpenAI `gpt-5.6-luna`, Pi AI `1.5.0`, `openai-responses`   |
 | Actor placeholder key       | `substrate-egress-placeholder`                             |
 | Egress replacement key      | `fixture-injected-openai-key`                              |
 
-Copy the actual catalog model and replace only `baseUrl`. The selected metadata uses `reasoning: false`, `compat.supportsStrictMode: true`, a 128000-token context window, and a 16384-token output maximum. Do not change the API to Chat Completions. The fixture accepts only `POST /openai/v1/responses`, `stream: true`, `store: false`, and the selected model ID.
+Copy the actual catalog model and replace only `baseUrl`. The selected metadata uses `reasoning: true`, `compat.supportsStrictMode: true`, a 272000-token context window, and a 128000-token output maximum. Actor output remains capped at 4096 tokens. Do not change the API to Chat Completions. The fixture accepts only `POST /openai/v1/responses`, `stream: true`, `store: false`, and the selected model ID. The production adapter declares tools for this model through `additional_tools` input items. Direct transport probes can also use the top-level `tools` field.
 
 For each ordinary latest user message, the fixture streams one `write` function call with `{"path":"fixture.txt","content":"fixture tool output\n"}`. The next request must contain that function call and its nonempty `function_call_output`. The fixture then streams `Fixture tool turn complete.`. It emits numbered Responses SSE events, partial argument/text deltas, `response.output_item.done`, `response.completed`, and synthetic usage. This is one bounded tool turn, not a general workflow engine.
 
