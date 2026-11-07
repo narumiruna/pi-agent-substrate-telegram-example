@@ -3,6 +3,5 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
-biome migrate --write
-biome format --write
-biome check --write
+npm run ci
+bash scripts/generate-substrate.sh --check

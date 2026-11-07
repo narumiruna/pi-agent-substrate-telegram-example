@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "role": "editor",
+      "members": [
+        "user:system:serviceaccount:telegram-pi:gateway",
+        "user:spiffe://cluster.local/ns/telegram-pi/sa/gateway",
+        "user:spiffe://cluster.local/ns/telegram-pi/sa/provisioner"
+      ]
+    }
+  ]
+}

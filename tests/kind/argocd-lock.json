@@ -1,0 +1,11 @@
+{
+  "version": "v3.6.1",
+  "revision": "94037c4d4e1af4bd0651d37a179fbd9e347e668c",
+  "sourceUrl": "https://raw.githubusercontent.com/argoproj/argo-cd/94037c4d4e1af4bd0651d37a179fbd9e347e668c/manifests/core-install.yaml",
+  "sourceSha256": "0b38189d6e1fd76ef5c3db10355026c48a02020d82bf21a1a1b5ab16dffe4f3c",
+  "cliSha256": "46d2fc941071f0a0c36326a67a431d34b1479e1a24737f7b367abc93968beadc",
+  "images": {
+    "quay.io/argoproj/argocd:v3.6.1": "quay.io/argoproj/argocd:v3.6.1@sha256:296e3d74f449b2ce45265613fcb68c18ed7366488360c8ea32f5f2a93d2e5c54",
+    "public.ecr.aws/docker/library/redis:8.10.1-alpine": "public.ecr.aws/docker/library/redis:8.10.1-alpine@sha256:ef216d85ec44f4fdf7c0e6df2d1757a4734ed32fbb278cabd3181b5a27353b79"
+  }
+}

@@ -1,0 +1,3 @@
+ARG ACTOR_IMAGE
+FROM ${ACTOR_IMAGE}
+COPY tests/actor/storage-proof.mjs /app/storage-proof.mjs

@@ -1,0 +1,43 @@
+Agent Substrate API source
+Copyright 2026 The Agent Substrate Authors
+Licensed under Apache License 2.0. See LICENSE.
+
+The file api/ateapi/v1/ateapi.proto is an unmodified copy from:
+https://github.com/agent-substrate/substrate
+Commit: 94e0a26ac90151886a76410568aaac2664a54d90
+Source:
+https://raw.githubusercontent.com/agent-substrate/substrate/94e0a26ac90151886a76410568aaac2664a54d90/api/ateapi/v1/ateapi.proto
+License:
+https://raw.githubusercontent.com/agent-substrate/substrate/94e0a26ac90151886a76410568aaac2664a54d90/LICENSE
+
+Google Protocol Buffers source
+Copyright 2008 Google Inc. All rights reserved.
+Licensed under the BSD 3-Clause license. See PROTOBUF_LICENSE and the
+copyright notices in google/protobuf/*.proto.
+
+The files google/protobuf/descriptor.proto and google/protobuf/timestamp.proto
+are unmodified copies from Protocol Buffers v25.3:
+https://github.com/protocolbuffers/protobuf
+Commit: 4a2aef570deb2bfb8927426558701e8bfc26f2a4
+Sources:
+https://raw.githubusercontent.com/protocolbuffers/protobuf/4a2aef570deb2bfb8927426558701e8bfc26f2a4/src/google/protobuf/descriptor.proto
+https://raw.githubusercontent.com/protocolbuffers/protobuf/4a2aef570deb2bfb8927426558701e8bfc26f2a4/src/google/protobuf/timestamp.proto
+License:
+https://raw.githubusercontent.com/protocolbuffers/protobuf/4a2aef570deb2bfb8927426558701e8bfc26f2a4/LICENSE
+
+SHA256SUMS records each source and license checksum. Regeneration verifies
+these files and needs no network connection or external source checkout.
+The newer descriptor.proto defines debug_redact, which the descriptor.proto
+bundled with grpc-tools 1.13.1 does not define. The API source is not patched.
+
+Run npm ci, then scripts/generate-substrate.sh. Use --check to compare the
+result with src/substrate/generated without changing the generated files.
+The generator uses ts-proto 2.18.4 and grpc-tools 1.13.1 (protoc 3.19.1).
+It generates grpc-js services, bigint int64 fields, .js ESM imports, and
+Timestamp messages with seconds and nanos. It does not generate JSON helpers.
+The generated code requires @grpc/grpc-js and @bufbuild/protobuf at runtime.
+The generated files are derived sources. Do not edit them manually.
+
+The loopback gRPC tests verify the generated transport contract only.
+They do not establish platform authentication, authorization, credential
+rotation, snapshot creation, or remote durability.

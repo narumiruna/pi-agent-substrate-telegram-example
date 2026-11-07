@@ -1,0 +1,151 @@
+# Fixture only. Credentials are created privately by prepare-application-db-kind.sh.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegram-pi-postgres-init
+  namespace: telegram-pi
+data:
+  10-application.sh: |
+    #!/bin/sh
+    set -eu
+    export OWNER_PASSWORD="$(cat /run/fixture/owner-password)"
+    export APP_PASSWORD="$(cat /run/fixture/app-password)"
+    psql -X -q --set ON_ERROR_STOP=1 --username postgres --dbname postgres <<'SQL'
+    \getenv owner_password OWNER_PASSWORD
+    \getenv app_password APP_PASSWORD
+    CREATE ROLE telegram_pi_owner LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD :'owner_password';
+    CREATE ROLE telegram_pi_gateway LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD :'app_password';
+    CREATE DATABASE telegram_pi OWNER telegram_pi_owner;
+    REVOKE ALL ON DATABASE postgres, template1, telegram_pi FROM PUBLIC;
+    GRANT CONNECT ON DATABASE telegram_pi TO telegram_pi_owner, telegram_pi_gateway;
+    \connect telegram_pi
+    ALTER SCHEMA public OWNER TO telegram_pi_owner;
+    REVOKE ALL ON SCHEMA public FROM PUBLIC;
+    SQL
+    unset OWNER_PASSWORD APP_PASSWORD
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: telegram-pi-postgres-data
+  namespace: telegram-pi
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: telegram-pi-postgres
+  namespace: telegram-pi
+spec:
+  type: ClusterIP
+  selector:
+    app: telegram-pi-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-pi-postgres
+  namespace: telegram-pi
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: telegram-pi-postgres
+  template:
+    metadata:
+      labels:
+        app: telegram-pi-postgres
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgres:18-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          env:
+            - name: POSTGRES_DB
+              value: postgres
+            - name: POSTGRES_PASSWORD_FILE
+              value: /run/fixture/admin-password
+            - name: POSTGRES_INITDB_ARGS
+              value: --auth-host=scram-sha-256 --auth-local=trust
+          ports:
+            - name: postgres
+              containerPort: 5432
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, postgres, -d, telegram_pi]
+            initialDelaySeconds: 3
+            periodSeconds: 2
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            - name: credentials
+              mountPath: /run/fixture
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: telegram-pi-postgres-data
+        - name: init
+          configMap:
+            name: telegram-pi-postgres-init
+            defaultMode: 365 # 0555
+        - name: credentials
+          secret:
+            secretName: telegram-pi-postgres-fixture-admin
+            defaultMode: 288 # 0440
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-postgres-fixture
+  namespace: telegram-pi
+spec:
+  podSelector:
+    matchLabels:
+      app: telegram-pi-postgres
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: telegram-pi
+          podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values: [telegram-pi-gateway, telegram-pi-migration]
+      ports:
+        - protocol: TCP
+          port: 5432
+  egress: []

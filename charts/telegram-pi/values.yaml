@@ -1,0 +1,39 @@
+# Supply digest-pinned images and deployment inputs. No Secret is created.
+images:
+  gateway: ""
+  actor: ""
+  worker: ""
+substrate:
+  atespace: telegram-pi
+  actorTemplate: ""
+openai:
+  baseUrl: https://national-team.openai.azure.com/openai/v1
+  model: ""
+  modelMetadata: ""
+  credentialUri: ""
+developmentHosts: []
+telegram:
+  allowedUserIds: []
+  apiBaseUrl: https://api.telegram.org
+existingSecrets:
+  database:
+    name: telegram-pi-database-app
+    key: url
+  migrationDatabase:
+    name: telegram-pi-database-owner
+    key: url
+  telegram:
+    name: telegram-bot
+    key: token
+# Exact post-DNAT Kubernetes API endpoint for GET of the named WorkerPool.
+# Supply its IPv4 /32 and port; no broader private-network access is needed.
+kubernetesApi:
+  cidr: ""
+  port: 6443
+# External application database. Operator owns roles, HBA, TLS, and backups.
+database:
+  applicationRole: telegram_pi_gateway
+  namespace: telegram-pi
+  podLabels:
+    app: telegram-pi-postgres
+  port: 5432

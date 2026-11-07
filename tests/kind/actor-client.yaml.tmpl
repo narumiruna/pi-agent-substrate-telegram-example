@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: actor-runtime-client
+  namespace: telegram-pi
+  labels:
+    app.kubernetes.io/name: actor-runtime-test
+spec:
+  serviceAccountName: gateway
+  automountServiceAccountToken: false
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile: {type: RuntimeDefault}
+  containers:
+    - name: client
+      image: ${CLIENT_IMAGE}
+      env:
+        - name: ACTOR_IMAGE
+          value: ${ACTOR_IMAGE}
+        - name: ACTOR_CREDENTIAL_URI
+          value: ate-secret://k8s.io/default/telegram-pi-llm/openai-fixture/api-key
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities: {drop: [ALL]}
+      resources:
+        requests: {cpu: 10m, memory: 64Mi}
+        limits: {cpu: 500m, memory: 256Mi}
+      volumeMounts:
+        - {name: identity, mountPath: /var/run/ate, readOnly: true}
+        - {name: scratch, mountPath: /tmp}
+  volumes:
+    - name: scratch
+      emptyDir: {medium: Memory, sizeLimit: 16Mi}
+    - name: identity
+      projected:
+        defaultMode: 0440
+        sources:
+          - clusterTrustBundle:
+              signerName: servicedns.podcert.ate.dev/identity
+              labelSelector:
+                matchLabels: {podcert.ate.dev/canarying: live}
+              path: ca.crt
+          - podCertificate:
+              signerName: podidentity.podcert.ate.dev/identity
+              keyType: ECDSAP256
+              credentialBundlePath: credential-bundle.pem

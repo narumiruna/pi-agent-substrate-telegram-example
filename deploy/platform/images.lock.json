@@ -1,0 +1,15 @@
+{
+  "revision": "94e0a26ac90151886a76410568aaac2664a54d90",
+  "images": {
+    "ko://go.ate.dev/substrate/cmd/ateapi": "localhost:25071/ateapi@sha256:2a58f21016e1a19c96c99f9cc29921f875047e7450711c35dce5f92d9eabfe2d",
+    "ko://go.ate.dev/substrate/cmd/atecontroller": "localhost:25071/atecontroller@sha256:7e4ab406b9f954ed4d218ff7a3f2caa356783c51fcdb34b505beffe4c731c70b",
+    "ko://go.ate.dev/substrate/cmd/ate-idp-server": "localhost:25071/ate-idp-server@sha256:d0776df6bd3327f82203c12e212c1fea9f08d192ebace3cd1c1e21743bb63462",
+    "ko://go.ate.dev/substrate/cmd/atenet": "localhost:25071/atenet@sha256:76172d6e4546fa204d94ea56327953587ebdcbf8e335d4feb4e631727edfb394",
+    "ko://go.ate.dev/substrate/cmd/atelet": "localhost:25071/atelet@sha256:dad1e4f048018c9977c85f274d7869e55a201d4e670fd0c3da6755f1c7988ddf",
+    "ko://go.ate.dev/substrate/cmd/objectstore-plugin": "localhost:25071/objectstore-plugin@sha256:56369a1e538cd3b1a1647232d633a7f14fd93d8cf14c63f1b011644fc23a981f",
+    "ko://go.ate.dev/substrate/cmd/podcertcontroller": "localhost:25071/podcertcontroller@sha256:96dba6f3efa8ccba1c4667604db48eba437fd174d680fb5b5a7d505574d36696",
+    "ko://go.ate.dev/substrate/cmd/credential-provider/kubernetes-secrets": "localhost:25071/kubernetes-secrets@sha256:fae0802846f64cf2ccb058b34bf3d3ef77b7c25d2a9c088a5d0b4a5527286d98",
+    "${ENVOY_DATAPLANE_IMAGE}": "localhost:25071/envoy-dataplane@sha256:aee088bdf94873fa2100a5512dde843119740dbbf5cba6187341c1f8d936528d"
+  },
+  "worker": "localhost:25071/ateworker-gvisor-6ba39372e3cc3b4b39febbff4256f962@sha256:86195735c240e8bd087055e240d1e9156cc2d1a24342d64700e96a49df318bd3"
+}

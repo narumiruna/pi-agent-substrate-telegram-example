@@ -1,0 +1,34 @@
+# Merge these keys into the Argo CD installation's ConfigMap before syncing.
+# Do not replace unrelated operator settings.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+data:
+  resource.customizations.health.ate.dev_WorkerPool: |
+    local hs = {status = "Progressing", message = "Waiting for gVisor workers"}
+    if obj.status == nil or obj.spec == nil then return hs end
+    if obj.status.readyReplicas ~= obj.spec.replicas then return hs end
+    if obj.status.sandboxClasses == nil then return hs end
+    for _, class in ipairs(obj.status.sandboxClasses) do
+      local resolved = false
+      for _, condition in ipairs(class.conditions or {}) do
+        if condition.type == "Resolved" and condition.status == "True" then
+          resolved = true
+        end
+      end
+      if not resolved then return hs end
+    end
+    hs.status = "Healthy"
+    hs.message = "All workers are ready and sandbox classes are resolved"
+    return hs
+  resource.customizations.health.argoproj.io_Application: |
+    local hs = {status = "Progressing", message = "Waiting for child application sync"}
+    if obj.status == nil or obj.status.sync == nil then return hs end
+    if obj.status.sync.status ~= "Synced" then return hs end
+    if obj.status.health ~= nil then
+      hs.status = obj.status.health.status
+      hs.message = obj.status.health.message or ""
+    end
+    return hs

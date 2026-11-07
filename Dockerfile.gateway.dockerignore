@@ -1,0 +1,11 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!src/
+!src/gateway/
+!src/gateway/**
+!src/substrate/
+!src/substrate/**
+!src/actor/
+!src/actor/config.ts

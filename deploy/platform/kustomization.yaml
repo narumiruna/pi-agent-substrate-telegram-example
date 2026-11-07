@@ -1,0 +1,13 @@
+# Local retained boundary only. Run the explicit bootstrap gates first.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - vendor/infrastructure.yaml
+  - vendor/signer.yaml
+  - vendor/postgres.yaml
+  - vendor/system.yaml
+  - vendor/egress.yaml
+  - vendor/credential-provider.yaml
+  - provider-access.yaml
+patches:
+  - path: fixture-upstream-roots.patch.yaml

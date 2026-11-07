@@ -1,0 +1,87 @@
+{{- if eq .Values.images.worker .Values.images.actor }}
+{{- fail "WorkerPool image must differ from Actor image" }}
+{{- end }}
+{{- if eq .Values.existingSecrets.database.name .Values.existingSecrets.migrationDatabase.name }}
+{{- fail "Application and migration database credentials must use separate Secrets" }}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: telegram-pi-migrate-{{ include "telegram-pi.version" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "telegram-pi.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        app: telegram-pi-migration
+    spec:
+      serviceAccountName: migration
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        {{- include "telegram-pi.security" . | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ .Values.images.gateway | quote }}
+          imagePullPolicy: IfNotPresent
+          command: [node, dist/gateway/migrate.js]
+          securityContext:
+            {{- include "telegram-pi.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          env:
+            - name: DATABASE_APPLICATION_ROLE
+              value: {{ .Values.database.applicationRole | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecrets.migrationDatabase.name }}
+                  key: {{ .Values.existingSecrets.migrationDatabase.key }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: telegram-pi-provision-{{ include "telegram-pi.version" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "telegram-pi.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 1200
+  template:
+    metadata:
+      labels:
+        app: telegram-pi-provisioner
+    spec:
+      serviceAccountName: provisioner
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      securityContext:
+        {{- include "telegram-pi.security" . | nindent 8 }}
+      containers:
+        - name: provision
+          image: {{ .Values.images.gateway | quote }}
+          imagePullPolicy: IfNotPresent
+          command: [node, dist/substrate/provision.js]
+          securityContext:
+            {{- include "telegram-pi.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: "1", memory: 256Mi}
+          env:
+            {{- include "telegram-pi.providerEnv" . | nindent 12 }}
+          volumeMounts:
+            - name: ate-identity
+              mountPath: /var/run/ate
+              readOnly: true
+      volumes:
+        {{- include "telegram-pi.identity" . | nindent 8 }}

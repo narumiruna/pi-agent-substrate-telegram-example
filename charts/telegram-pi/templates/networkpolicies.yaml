@@ -1,0 +1,103 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-client-default-deny
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [telegram-pi-gateway, telegram-pi-provisioner, telegram-pi-migration]
+  policyTypes: [Ingress, Egress]
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-database
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [telegram-pi-gateway, telegram-pi-migration]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.database.namespace }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.database.podLabels | nindent 14 }}
+      ports:
+        - {protocol: TCP, port: {{ .Values.database.port }}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-api
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: [telegram-pi-gateway, telegram-pi-provisioner]
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ate-system
+          podSelector:
+            matchLabels:
+              app: ate-api-server
+      ports:
+        - {protocol: TCP, port: 8443}
+---
+# Telegram HTTPS destinations are checked by application configuration and TLS.
+# NetworkPolicy cannot enforce an HTTPS hostname allowlist.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-https
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  podSelector:
+    matchLabels:
+      app: telegram-pi-gateway
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock: {cidr: 0.0.0.0/0}
+        - ipBlock: {cidr: "::/0"}
+      ports:
+        - {protocol: TCP, port: 443}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ate-system
+          podSelector:
+            matchLabels:
+              app: atenet-router
+      ports:
+        - {protocol: TCP, port: 8443}

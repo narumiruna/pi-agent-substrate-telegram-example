@@ -1,25 +1,25 @@
 # Telegram Pi Actor Architecture
 
-Status: Design baseline. The application, charts, and cluster have not been implemented or validated.
+Status: Implemented application design. Focused runtime checks pass on an isolated kind cluster. Complete packaged Argo CD validation is in progress; see [operations.md](operations.md) for evidence and restrictions.
 
 ## Confirmed decisions
 
-| Area | Decision |
-|---|---|
-| Local environment | kind, with the Substrate gVisor backend; verify host compatibility before installation |
-| Deployment target | Kubernetes, Helm, and Argo CD |
-| Telegram transport | Long polling; no public webhook, tunnel, or application Ingress |
-| Isolation | One Actor per Telegram chat or topic |
-| Agent | `@earendil-works/pi-durable`, with model requests handled by `pi-ai` |
-| Actor storage | One Pi Durable SQLite database per Actor, inside `DurableDir` |
-| Gateway storage | PostgreSQL for inbox, outbox, polling cursor, and Actor mapping |
-| Tools | `read`, `write`, `edit`, and `bash` inside the Actor sandbox |
-| Authorization | An allowlist of numeric Telegram User IDs |
-| Private chat trigger | Messages from an authorized user |
-| Group and topic trigger | An authorized user's message that mentions this Bot or replies to this Bot |
-| LLM connection | OpenAI provider with `OPENAI_BASE_URL` and `OPENAI_API_KEY`; no `AZURE_` variables |
-| LLM endpoint | `https://national-team.openai.azure.com/openai/v1` |
-| Development network | Explicitly allowed Git hosts and package registries, in addition to the LLM endpoint |
+| Area                    | Decision                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| Local environment       | kind, with the Substrate gVisor backend; verify host compatibility before installation |
+| Deployment target       | Kubernetes, Helm, and Argo CD                                                          |
+| Telegram transport      | Long polling; no public webhook, tunnel, or application Ingress                        |
+| Isolation               | One Actor per Telegram chat or topic                                                   |
+| Agent                   | `@earendil-works/pi-durable`, with model requests handled by `pi-ai`                   |
+| Actor storage           | One Pi Durable SQLite database per Actor, inside `DurableDir`                          |
+| Gateway storage         | PostgreSQL for inbox, outbox, polling cursor, and Actor mapping                        |
+| Tools                   | `read`, `write`, `edit`, and `bash` inside the Actor sandbox                           |
+| Authorization           | An allowlist of numeric Telegram User IDs                                              |
+| Private chat trigger    | Messages from an authorized user                                                       |
+| Group and topic trigger | An authorized user's message that mentions this Bot or replies to this Bot             |
+| LLM connection          | OpenAI provider with `OPENAI_BASE_URL` and `OPENAI_API_KEY`; no `AZURE_` variables     |
+| LLM endpoint            | `https://national-team.openai.azure.com/openai/v1`                                     |
+| Development network     | Explicitly allowed Git hosts and package registries, in addition to the LLM endpoint   |
 
 Actual User IDs, model and deployment details, development hostnames, and secret values are deployment inputs. They do not require a different architecture.
 
@@ -149,11 +149,11 @@ Set the Pi working directory to the Actor workspace. This is a tool default, not
 
 Each Actor uses one root Pi Durable conversation for its chat or topic. Reopen that conversation for subsequent Telegram messages; do not create a new conversation for every update.
 
-| Storage | Stored data | Purpose |
-|---|---|---|
-| Actor SQLite | User entries, assistant entries, tool calls and results, compaction entries, submission and task state | Authoritative Pi conversation and execution history |
-| Gateway PostgreSQL | Accepted Telegram inputs and identifiers, job state, outbox replies, polling cursor, Actor mapping | Admission, routing, recovery, and delivery; not a second complete Pi transcript |
-| RustFS | Substrate snapshots containing the Actor's durable files and, for memory snapshots, its running state | Restore Actor state from a completed snapshot |
+| Storage            | Stored data                                                                                            | Purpose                                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Actor SQLite       | User entries, assistant entries, tool calls and results, compaction entries, submission and task state | Authoritative Pi conversation and execution history                             |
+| Gateway PostgreSQL | Accepted Telegram inputs and identifiers, job state, outbox replies, polling cursor, Actor mapping     | Admission, routing, recovery, and delivery; not a second complete Pi transcript |
+| RustFS             | Substrate snapshots containing the Actor's durable files and, for memory snapshots, its running state  | Restore Actor state from a completed snapshot                                   |
 
 Only authorized, triggering Telegram messages enter this history. It is not an archive of every message sent in the Telegram chat. Members of the same chat or topic share one history; different Actors have different databases.
 
@@ -183,10 +183,10 @@ The hostname allowlist is deployment-controlled. Telegram input must not change 
 
 Use separate Argo CD Applications for the Substrate platform and the Bot workload.
 
-| Application | Managed resources |
-|---|---|
-| `substrate-platform` | Fixed-version upstream resources, CRDs, control plane, Router, egress, credential provider, atelet, and local platform dependencies |
-| `telegram-pi` | Gateway, application database resources or references, WorkerPool, configuration, Secret references, NetworkPolicies, and provisioning Job |
+| Application          | Managed resources                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `substrate-platform` | Fixed-version upstream resources, CRDs, control plane, Router, egress, credential provider, atelet, and local platform dependencies        |
+| `telegram-pi`        | Gateway, application database resources or references, WorkerPool, configuration, Secret references, NetworkPolicies, and provisioning Job |
 
 Keep upstream platform resources version-pinned. The upstream installer also performs bootstrap operations; certificate setup, database migrations, sandbox assets, and image availability must be checked before claiming that platform deployment is fully declarative. Do not treat copying upstream manifests into a chart as a complete installation.
 

@@ -1,0 +1,39 @@
+# Test-only strategic merge patch for the pinned platform Deployment.
+# Retain this patch in the later platform Argo CD source. Do not use in production.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atenet-egress
+  namespace: ate-system
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: e2e-egress-upstream-roots
+          image: localhost:25071/envoy-dataplane@sha256:aee088bdf94873fa2100a5512dde843119740dbbf5cba6187341c1f8d936528d
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
+            - cat /etc/ssl/certs/ca-certificates.crt /run/servicedns.podcert.ate.dev/trust-bundle.pem > /run/e2e-egress-roots/ca-certificates.crt
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: servicedns
+              mountPath: /run/servicedns.podcert.ate.dev
+              readOnly: true
+            - name: e2e-egress-upstream-roots
+              mountPath: /run/e2e-egress-roots
+      containers:
+        - name: envoy
+          volumeMounts:
+            - name: e2e-egress-upstream-roots
+              mountPath: /etc/ssl/certs/ca-certificates.crt
+              subPath: ca-certificates.crt
+              readOnly: true
+      volumes:
+        - name: e2e-egress-upstream-roots
+          emptyDir: {}

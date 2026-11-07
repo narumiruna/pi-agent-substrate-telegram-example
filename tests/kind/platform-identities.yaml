@@ -1,0 +1,14 @@
+# Distinct identity fixtures. Neither account is Router-allowlisted.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: identity-provisioner
+  namespace: telegram-pi
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: identity-ungranted
+  namespace: telegram-pi
+automountServiceAccountToken: false

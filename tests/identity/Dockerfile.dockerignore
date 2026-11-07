@@ -1,0 +1,12 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!src
+!src/substrate
+!src/substrate/**
+!tests
+!tests/substrate-identity.ts
+!tests/identity
+!tests/identity/tsconfig.json
+!tests/identity/Dockerfile

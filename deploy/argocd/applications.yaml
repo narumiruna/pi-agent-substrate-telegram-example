@@ -1,0 +1,48 @@
+# Replace BOTH targetRevision values with the reviewed commit that contains
+# these artifacts. Do not substitute a moving branch or claim this is installed.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: substrate-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+spec:
+  project: substrate-platform
+  source:
+    repoURL: https://github.com/narumiruna/pi-agent-substrate-telegram-example.git
+    targetRevision: REPLACE_WITH_REVIEWED_PACKAGING_COMMIT
+    path: deploy/platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ate-system
+  syncPolicy:
+    syncOptions:
+      - ServerSideApply=true
+      - DisableClientSideApplyMigration=true
+      - FailOnSharedResource=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: telegram-pi
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+spec:
+  project: telegram-pi
+  source:
+    repoURL: https://github.com/narumiruna/pi-agent-substrate-telegram-example.git
+    targetRevision: REPLACE_WITH_REVIEWED_PACKAGING_COMMIT
+    path: charts/telegram-pi
+    helm:
+      releaseName: telegram-pi
+      valueFiles: [values-kind.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: telegram-pi
+  syncPolicy:
+    syncOptions:
+      - ServerSideApply=true
+      - DisableClientSideApplyMigration=true
+      - FailOnSharedResource=true

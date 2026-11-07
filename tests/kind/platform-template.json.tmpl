@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "atespace": "telegram-pi-platform-smoke",
+    "name": "counter-94e0a26a"
+  },
+  "workerSelector": {
+    "matchLabels": {"workload": "telegram-pi-platform-smoke"}
+  },
+  "containers": [
+    {
+      "name": "counter",
+      "image": "${COUNTER_IMAGE}",
+      "wakeupProbe": {
+        "httpGet": {"path": "/readyz", "port": 80},
+        "timeoutSeconds": 30
+      },
+      "volumeMounts": [{"name": "data", "mountPath": "/home/counter"}]
+    }
+  ],
+  "resources": {
+    "limits": {"cpuMillicores": "1000", "memoryBytes": "536870912"}
+  },
+  "snapshotConfig": {
+    "preferredFidelity": "SNAPSHOT_FIDELITY_MEMORY",
+    "goldenSnapshotConfig": {"mode": "GOLDEN_SNAPSHOT_MODE_ENABLED"}
+  },
+  "volumes": [{"name": "data", "durableDir": {}}]
+}

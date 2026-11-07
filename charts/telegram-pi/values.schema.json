@@ -1,0 +1,199 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "images",
+    "substrate",
+    "openai",
+    "developmentHosts",
+    "telegram",
+    "existingSecrets",
+    "kubernetesApi",
+    "database"
+  ],
+  "properties": {
+    "images": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gateway", "actor", "worker"],
+      "properties": {
+        "gateway": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9./_:-]*@sha256:[a-f0-9]{64}$"
+        },
+        "actor": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9./_:-]*@sha256:[a-f0-9]{64}$"
+        },
+        "worker": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9./_:-]*@sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "substrate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atespace", "actorTemplate"],
+      "properties": {
+        "atespace": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+        },
+        "actorTemplate": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+        }
+      }
+    },
+    "openai": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseUrl", "model", "modelMetadata", "credentialUri"],
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modelMetadata": {
+          "type": "string",
+          "minLength": 1
+        },
+        "credentialUri": {
+          "type": "string",
+          "pattern": "^ate-secret://k8s\\.io/default/[a-z0-9-]+/[a-z0-9-]+/[A-Za-z0-9._-]+$"
+        }
+      }
+    },
+    "developmentHosts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 253,
+        "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"
+      }
+    },
+    "telegram": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowedUserIds", "apiBaseUrl"],
+      "properties": {
+        "allowedUserIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]*$"
+          }
+        },
+        "apiBaseUrl": {
+          "type": "string",
+          "pattern": "^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$"
+        }
+      }
+    },
+    "existingSecrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["database", "migrationDatabase", "telegram"],
+      "properties": {
+        "database": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "key"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        },
+        "migrationDatabase": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "key"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        },
+        "telegram": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "key"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "key": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        }
+      }
+    },
+    "kubernetesApi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cidr", "port"],
+      "properties": {
+        "cidr": { "type": "string", "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/32$" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "podLabels", "port", "applicationRole"],
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+        },
+        "podLabels": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "applicationRole": {
+          "type": "string",
+          "maxLength": 63,
+          "pattern": "^[a-z][a-z0-9_]*$"
+        }
+      }
+    }
+  }
+}
