@@ -20,5 +20,14 @@ jobs:
         with:
           node-version: 26
           cache: npm
+      - run: bash scripts/prepare-tools.sh
+      - run: echo "$GITHUB_WORKSPACE/.cache/tools" >> "$GITHUB_PATH"
       - run: npm ci
-
+      - run: npm run ci
+      - run: node --test tests/e2e/check.mjs tests/kind/argocd-bootstrap.test.mjs
+      - run: bash scripts/test-postgres.sh
+      - run: bash scripts/check-deployment.sh
+      - run: docker build -f Dockerfile.actor -t telegram-pi-actor:ci .
+      - run: docker build -f Dockerfile.gateway -t telegram-pi-gateway:ci .
+      - run: bash scripts/generate-substrate.sh --check
+      - run: bash -n scripts/*.sh

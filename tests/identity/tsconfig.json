@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "outDir": "../../.cache/identity-build"
+  },
+  "include": ["../../src/substrate/**/*.ts", "../substrate-identity.ts"]
+}

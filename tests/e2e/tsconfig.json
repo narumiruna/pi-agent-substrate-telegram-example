@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "rootDir": "../..", "outDir": "../../.cache/e2e-build" },
+  "include": ["./client.ts"]
+}

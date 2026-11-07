@@ -1,0 +1,23 @@
+# Calico 3.33.0's policy-only manifest omits this CNI read permission.
+# Without it, new Pods fail with ClusterInformation Forbidden.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: telegram-pi-calico-cni-clusterinfo
+rules:
+  - apiGroups: [crd.projectcalico.org]
+    resources: [clusterinformations]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: telegram-pi-calico-cni-clusterinfo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: telegram-pi-calico-cni-clusterinfo
+subjects:
+  - kind: ServiceAccount
+    name: calico-cni-plugin
+    namespace: kube-system

@@ -1,0 +1,4 @@
+# Render-only policy fixture. This digest is not image build/runtime evidence.
+# Real kind values are checked separately by scripts/check-deployment.sh.
+images:
+  gateway: example.invalid/telegram-pi-gateway@sha256:1111111111111111111111111111111111111111111111111111111111111111

@@ -1,0 +1,48 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: telegram-pi-worker-capacity
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+rules:
+  - apiGroups: [ate.dev]
+    resources: [workerpools]
+    resourceNames: [telegram-pi]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: telegram-pi-worker-capacity
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: telegram-pi-worker-capacity
+subjects:
+  - kind: ServiceAccount
+    name: gateway
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-worker-capacity
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-5"
+spec:
+  podSelector:
+    matchLabels:
+      app: telegram-pi-gateway
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.kubernetesApi.cidr | quote }}
+      ports:
+        - protocol: TCP
+          port: {{ .Values.kubernetesApi.port }}

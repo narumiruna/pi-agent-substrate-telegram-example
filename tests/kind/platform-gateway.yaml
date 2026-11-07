@@ -1,0 +1,60 @@
+# Router client fixture only. This is not the application Gateway.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway
+  namespace: telegram-pi
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: platform-router-probe
+  namespace: telegram-pi
+  labels:
+    app: platform-router-probe
+spec:
+  serviceAccountName: gateway
+  automountServiceAccountToken: false
+  restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: curl
+      image: curlimages/curl:8.12.1@sha256:94e9e444bcba979c2ea12e27ae39bee4cd10bc7041a472c4727a558e213744e6
+      command: [/bin/sh, -c, "sleep 86400"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      volumeMounts:
+        - name: identity
+          mountPath: /var/run/ate
+          readOnly: true
+  volumes:
+    - name: identity
+      projected:
+        sources:
+          - clusterTrustBundle:
+              signerName: servicedns.podcert.ate.dev/identity
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: ca.crt
+          - podCertificate:
+              signerName: podidentity.podcert.ate.dev/identity
+              keyType: ECDSAP256
+              credentialBundlePath: credential-bundle.pem

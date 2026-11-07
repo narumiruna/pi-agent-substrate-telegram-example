@@ -1,0 +1,21 @@
+# Isolated validation fixture only. CNI applies the post-Service target port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: telegram-pi-telegram-fixture
+  namespace: telegram-pi
+spec:
+  podSelector:
+    matchLabels:
+      app: telegram-pi-gateway
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: telegram-pi-fixtures
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: synthetic-api
+      ports:
+        - { protocol: TCP, port: 8443 }

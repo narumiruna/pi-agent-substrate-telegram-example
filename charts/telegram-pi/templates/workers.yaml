@@ -1,0 +1,26 @@
+apiVersion: ate.dev/v1
+kind: WorkerPool
+metadata:
+  name: telegram-pi
+  namespace: {{ .Release.Namespace }}
+  labels:
+    workload: telegram-pi
+    {{- include "telegram-pi.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  replicas: 2
+  workerImage: {{ .Values.images.worker | quote }}
+  sandboxClasses:
+    - name: gvisor
+      configRef:
+        name: gvisor-default
+  template:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 1Gi

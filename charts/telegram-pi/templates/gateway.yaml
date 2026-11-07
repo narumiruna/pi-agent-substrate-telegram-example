@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-pi-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "telegram-pi.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: telegram-pi-gateway
+  template:
+    metadata:
+      labels:
+        app: telegram-pi-gateway
+      annotations:
+        telegram-pi/config-hash: {{ include "telegram-pi.version" . | quote }}
+    spec:
+      serviceAccountName: gateway
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        {{- include "telegram-pi.security" . | nindent 8 }}
+      containers:
+        - name: gateway
+          image: {{ .Values.images.gateway | quote }}
+          imagePullPolicy: IfNotPresent
+          command: [node, dist/gateway/index.js]
+          securityContext:
+            {{- include "telegram-pi.containerSecurity" . | nindent 12 }}
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          ports:
+            - name: health
+              containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /readyz, port: health}
+            periodSeconds: 5
+          startupProbe:
+            httpGet: {path: /readyz, port: health}
+            periodSeconds: 5
+            failureThreshold: 120
+          env:
+            {{- include "telegram-pi.providerEnv" . | nindent 12 }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecrets.database.name }}
+                  key: {{ .Values.existingSecrets.database.key }}
+            - name: TELEGRAM_TOKEN_FILE
+              value: /var/run/telegram/token
+            - name: TELEGRAM_ALLOWED_USER_IDS
+              value: {{ join "," .Values.telegram.allowedUserIds | quote }}
+            - name: TELEGRAM_API_BASE_URL
+              value: {{ .Values.telegram.apiBaseUrl | quote }}
+            - name: MAX_ACTIVE_DISPATCH
+              value: "2"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WORKER_POOL_NAME
+              value: telegram-pi
+            - name: NODE_EXTRA_CA_CERTS
+              value: /var/run/ate/ca.crt
+          volumeMounts:
+            - name: ate-identity
+              mountPath: /var/run/ate
+              readOnly: true
+            - name: telegram-token
+              mountPath: /var/run/telegram
+              readOnly: true
+            - name: worker-capacity-identity
+              mountPath: /var/run/kubernetes
+              readOnly: true
+      volumes:
+        {{- include "telegram-pi.identity" . | nindent 8 }}
+        - name: worker-capacity-identity
+          projected:
+            defaultMode: 0440
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+              - configMap:
+                  name: kube-root-ca.crt
+                  items:
+                    - key: ca.crt
+                      path: ca.crt
+        - name: telegram-token
+          projected:
+            defaultMode: 0440
+            sources:
+              - secret:
+                  name: {{ .Values.existingSecrets.telegram.name }}
+                  items:
+                    - key: {{ .Values.existingSecrets.telegram.key }}
+                      path: token

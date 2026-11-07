@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "rootDir": "../..", "outDir": "../../.cache/actor-runtime-build" },
+  "include": ["../../src/substrate/client.ts", "../actor-runtime.ts"]
+}

@@ -1,0 +1,222 @@
+# Derived from Agent Substrate 94e0a26ac90151886a76410568aaac2664a54d90.
+# Modified post-bootstrap kind boundary; see ../PROVENANCE.md and ../LICENSE.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: podcertificate-controller-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-10"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: podcertificate-controller
+  namespace: podcertificate-controller-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: podcert-ate-dev-signer
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - podcertificaterequests
+    verbs:
+      - get
+      - list
+      - watch
+      - update
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - clustertrustbundles
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - delete
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - podcertificaterequests/status
+    verbs:
+      - update
+  - apiGroups:
+      - certificates.k8s.io
+    resources:
+      - signers
+    resourceNames:
+      - servicedns.podcert.ate.dev/*
+      - podidentity.podcert.ate.dev/*
+      - postgres.podcert.ate.dev/*
+    verbs:
+      - sign
+      - attest
+  - apiGroups:
+      - events.k8s.io
+    resources:
+      - events
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: podcert-ate-dev-signer
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: podcert-ate-dev-signer
+subjects:
+  - kind: ServiceAccount
+    namespace: podcertificate-controller-system
+    name: podcertificate-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: podcertificate-controller-system
+  name: coordinator
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+rules:
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - update
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: podcertificate-controller-is-a-coordinator
+  namespace: podcertificate-controller-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: coordinator
+subjects:
+  - kind: ServiceAccount
+    namespace: podcertificate-controller-system
+    name: podcertificate-controller
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podcertificate-controller
+  namespace: podcertificate-controller-system
+  labels:
+    app: podcertificate-controller
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: podcertificate-controller
+  template:
+    metadata:
+      labels:
+        app: podcertificate-controller
+    spec:
+      containers:
+        - name: controller
+          image: localhost:25071/podcertcontroller@sha256:96dba6f3efa8ccba1c4667604db48eba437fd174d680fb5b5a7d505574d36696
+          args:
+            - --in-cluster=true
+            - --sharding-pod-namespace=$(POD_NAMESPACE)
+            - --sharding-pod-name=$(POD_NAME)
+            - --sharding-pod-uid=$(POD_UID)
+            - --sharding-application-name=podcertificate-controller
+            - --service-dns-ca-pool=/run/ca-state/service-dns-pool.json
+            - --pod-identity-ca-pool=/run/ca-state/pod-identity-pool.json
+            - --postgres-ca-pool=/run/ca-state/postgres-pool.json
+            - --postgres-client-namespace=ate-system
+            - --workers-per-signer=$(WORKERS_PER_SIGNER)
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: WORKERS_PER_SIGNER
+              value: "1"
+          volumeMounts:
+            - name: ca-state
+              mountPath: /run/ca-state
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              add:
+                - NET_BIND_SERVICE
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+      volumes:
+        - name: ca-state
+          projected:
+            sources:
+              - secret:
+                  name: service-dns-ca-pool
+                  items:
+                    - key: pool
+                      path: service-dns-pool.json
+              - secret:
+                  name: pod-identity-ca-pool
+                  items:
+                    - key: pool
+                      path: pod-identity-pool.json
+              - secret:
+                  name: postgres-ca-pool
+                  items:
+                    - key: pool
+                      path: postgres-pool.json
+      dnsPolicy: Default
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccountName: podcertificate-controller
+      terminationGracePeriodSeconds: 30

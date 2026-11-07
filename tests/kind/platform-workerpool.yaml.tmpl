@@ -1,0 +1,30 @@
+# Local platform smoke fixture. Not an application deployment.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: telegram-pi
+  labels:
+    ate.dev/api-access: "true"
+---
+apiVersion: ate.dev/v1
+kind: WorkerPool
+metadata:
+  name: platform-smoke
+  namespace: telegram-pi
+  labels:
+    workload: telegram-pi-platform-smoke
+spec:
+  replicas: 2
+  workerImage: ${WORKER_IMAGE}
+  sandboxClasses:
+    - name: gvisor
+      configRef:
+        name: gvisor-default
+  template:
+    resources:
+      requests:
+        cpu: 250m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 1Gi

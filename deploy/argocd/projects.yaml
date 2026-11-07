@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: substrate-platform
+  namespace: argocd
+spec:
+  description: Retained exact-pin platform after explicit operator bootstrap
+  sourceRepos:
+    - https://github.com/narumiruna/pi-agent-substrate-telegram-example.git
+  destinations:
+    - { server: https://kubernetes.default.svc, namespace: ate-system }
+    - { server: https://kubernetes.default.svc, namespace: podcertificate-controller-system }
+    - { server: https://kubernetes.default.svc, namespace: otel-system }
+    - { server: https://kubernetes.default.svc, namespace: telegram-pi-llm }
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }
+    - { group: apiextensions.k8s.io, kind: CustomResourceDefinition }
+    - { group: rbac.authorization.k8s.io, kind: ClusterRole }
+    - { group: rbac.authorization.k8s.io, kind: ClusterRoleBinding }
+    - { group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicy }
+    - { group: admissionregistration.k8s.io, kind: ValidatingAdmissionPolicyBinding }
+    - { group: ate.dev, kind: SandboxConfig }
+  namespaceResourceWhitelist:
+    - { group: "", kind: ServiceAccount }
+    - { group: "", kind: ConfigMap }
+    - { group: "", kind: Service }
+    - { group: "", kind: PersistentVolumeClaim }
+    - { group: "", kind: ResourceQuota }
+    - { group: apps, kind: Deployment }
+    - { group: apps, kind: StatefulSet }
+    - { group: apps, kind: DaemonSet }
+    - { group: rbac.authorization.k8s.io, kind: Role }
+    - { group: rbac.authorization.k8s.io, kind: RoleBinding }
+    - { group: networking.k8s.io, kind: NetworkPolicy }
+    - { group: policy, kind: PodDisruptionBudget }
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: telegram-pi
+  namespace: argocd
+spec:
+  description: Bot Kubernetes resources only; no API records or Secrets
+  sourceRepos:
+    - https://github.com/narumiruna/pi-agent-substrate-telegram-example.git
+  destinations:
+    - { server: https://kubernetes.default.svc, namespace: telegram-pi }
+  clusterResourceWhitelist:
+    - { group: "", kind: Namespace }
+  namespaceResourceWhitelist:
+    - { group: apps, kind: Deployment }
+    - { group: batch, kind: Job }
+    - { group: "", kind: ServiceAccount }
+    - { group: rbac.authorization.k8s.io, kind: Role }
+    - { group: rbac.authorization.k8s.io, kind: RoleBinding }
+    - { group: networking.k8s.io, kind: NetworkPolicy }
+    - { group: ate.dev, kind: WorkerPool }
