@@ -21,6 +21,14 @@ Supply all values required by `values.schema.json`. `values.yaml` intentionally 
 
 Gateway and provisioner use distinct ServiceAccounts without ambient tokens. Gateway has one namespaced `get` permission for its named WorkerPool. Its separate rotating Kubernetes token and CA projection permit only this capacity check; the provisioner has no Kubernetes RBAC. Supply `kubernetesApi.cidr` as the exact post-DNAT IPv4 `/32` endpoint and `kubernetesApi.port` for its egress rule. No Secret or worker administration permission is granted. Operator bootstrap grants API atespace `editor`. This is the narrowest built-in writable role, not a per-method grant. Only Gateway is Router-allowlisted. Both use a live service-DNS CA projection and an ECDSAP256 Pod identity credential bundle; do not use `subPath` mounts for these rotating files.
 
+## Live APIs on the owned kind cluster
+
+The Bot Application in `deploy/argocd/applications.yaml` applies `values-kind.yaml`, then `values-live.yaml`. The second file selects real Telegram and the approved Azure OpenAI v1 endpoint, keeps `gpt-5.6-luna`, uses the new immutable `pi-v3-live` template, and removes fixture development hosts. It inherits the local images, database, Secret references, and User ID allowlist. This is not a production infrastructure configuration.
+
+The chart does not read `.env`. Supply `BOT_TOKEN` and `OPENAI_API_KEY` through the existing Secrets. The Azure deployment must actually expose the configured model; local metadata checks do not prove availability. Sync starts real Telegram polling. Authorized messages can cause billed model requests.
+
+For synthetic tests, select only `values-kind.yaml` and synthetic Secret values. Never send real credentials to the fixture endpoints or run the packaged synthetic E2E suite against the live Bot.
+
 ## Ordering and admission
 
 | Argo CD wave | Resources or gate                                                                                 |

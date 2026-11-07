@@ -1,0 +1,11 @@
+# Live API overlay for the owned kind cluster. Apply after values-kind.yaml.
+# Credentials stay in the existing Kubernetes Secrets, never in this file.
+substrate:
+  actorTemplate: pi-v3-live
+openai:
+  baseUrl: https://national-team.openai.azure.com/openai/v1
+  model: gpt-5.6-luna
+  modelMetadata: gpt-5.6-luna
+developmentHosts: []
+telegram:
+  apiBaseUrl: https://api.telegram.org
