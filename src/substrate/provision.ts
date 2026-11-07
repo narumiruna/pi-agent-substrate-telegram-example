@@ -525,7 +525,8 @@ async function readyTemplate(
             snapshot.generation < 1 ||
             snapshot.owner !== SnapshotOwner.SNAPSHOT_OWNER_TAG ||
             ![1, 2, 3].includes(snapshot.fidelity) ||
-            snapshot.actorTemplateUid !== template.metadata?.uid ||
+            (snapshot.actorTemplateUid !== "" &&
+              snapshot.actorTemplateUid !== template.metadata?.uid) ||
             tag.status?.actorTemplateUid !== template.metadata?.uid
           )
             throw new ProvisionConflict(

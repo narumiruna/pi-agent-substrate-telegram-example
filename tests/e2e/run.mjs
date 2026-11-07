@@ -316,11 +316,18 @@ try {
                   namespaceSelector: {
                     matchLabels: { "kubernetes.io/metadata.name": "ate-system" },
                   },
-                  podSelector: {
-                    matchExpressions: [
-                      { key: "app", operator: "In", values: ["ate-api-server", "atenet-router"] },
-                    ],
+                  podSelector: { matchLabels: { app: "ate-api-server" } },
+                },
+              ],
+              ports: [{ protocol: "TCP", port: 443 }],
+            },
+            {
+              to: [
+                {
+                  namespaceSelector: {
+                    matchLabels: { "kubernetes.io/metadata.name": "ate-system" },
                   },
+                  podSelector: { matchLabels: { app: "atenet-router" } },
                 },
               ],
               ports: [{ protocol: "TCP", port: 8443 }],

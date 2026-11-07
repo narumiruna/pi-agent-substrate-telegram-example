@@ -94,7 +94,8 @@ export async function fakeControl(tls: ReturnType<typeof tlsFixture>) {
               generation: 1,
               owner: SnapshotOwner.SNAPSHOT_OWNER_TAG,
               fidelity: SnapshotFidelity.SNAPSHOT_FIDELITY_MEMORY,
-              actorTemplateUid: templateUid,
+              // The pinned server publishes the binding on TagStatus, not this optional field.
+              actorTemplateUid: "",
               durableSnapshot: {
                 state: state.pendingTag
                   ? SnapshotStorageState.SNAPSHOT_STORAGE_STATE_PENDING

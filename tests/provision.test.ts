@@ -367,6 +367,16 @@ describe("retry-safe provisioning through in-process mTLS gRPC", () => {
     expect(fake.state.reads).toBeGreaterThanOrEqual(4)
   })
 
+  it.each([false, true])(
+    "accepts optional nested template UID only when empty or matching (%s)",
+    async (populated) => {
+      await provision()
+      present(fake.tag().status?.snapshot).actorTemplateUid = populated
+        ? present(fake.template().metadata).uid
+        : ""
+      await expect(provision()).resolves.toHaveProperty("snapshot")
+    },
+  )
   it("reports a terminal golden error", async () => {
     fake.state.goldenError = "WakeupFailed: process exited"
     await expect(provision()).rejects.toThrow(
