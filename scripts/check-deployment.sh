@@ -17,6 +17,11 @@ mkdir -p "$state"
 "$helm" lint --strict charts/telegram-pi -f charts/telegram-pi/values-kind.yaml
 "$helm" template telegram-pi charts/telegram-pi --namespace telegram-pi \
   -f charts/telegram-pi/values-kind.yaml > "$state/bot.yaml"
+"$helm" lint --strict charts/telegram-pi \
+  -f charts/telegram-pi/values-kind.yaml -f charts/telegram-pi/values-live.yaml
+"$helm" template telegram-pi charts/telegram-pi --namespace telegram-pi \
+  -f charts/telegram-pi/values-kind.yaml -f charts/telegram-pi/values-live.yaml \
+  > "$state/bot-live.yaml"
 npm exec --no -- vitest run tests/deployment.test.ts
 k=(kubectl --kubeconfig "$root/.cache/kind/kubeconfig" --context kind-telegram-pi-validation)
 "${k[@]}" kustomize deploy/platform > "$state/platform.yaml"
@@ -31,6 +36,9 @@ if "$server"; then
   "${k[@]}" apply --server-side --dry-run=server --force-conflicts \
     --field-manager=telegram-pi-packaging-check -f "$state/bot.yaml" \
     > "$state/bot-server-dryrun.txt"
-  echo 'Owned-cluster platform and Bot schema/adoption dry-runs passed.'
+  "${k[@]}" apply --server-side --dry-run=server --force-conflicts \
+    --field-manager=telegram-pi-packaging-check -f "$state/bot-live.yaml" \
+    > "$state/bot-live-server-dryrun.txt"
+  echo 'Owned-cluster platform, fixture Bot, and live Bot schema/adoption dry-runs passed.'
 fi
 echo "Deployment packaging checks passed. Evidence: $state"

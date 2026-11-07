@@ -70,6 +70,8 @@ Core mode uses the verified Kubernetes API connection and a temporary loopback C
 
 **Do not run this section until the main agent explicitly approves the exact committed and public revision.** Preparation does not supply that approval. Do not substitute a branch or a local uncommitted tree. The actual Gateway image digest, chart/server checks, platform bootstrap prerequisites, and main agent's retained-state baseline must also pass first.
 
+The supplied Application now selects live APIs. The fixture commands below explicitly remove `values-live.yaml` from the Bot inputs. They do not change Secret values. Use only synthetic credentials and do not run them against an active live Bot.
+
 With the shell functions above, use the exact 40-character approved commit in place of the marker:
 
 ```bash
@@ -85,13 +87,18 @@ curl --fail --silent --show-error --location \
 cmp deploy/argocd/applications.yaml "$state/applications-public-source.yaml"
 node --input-type=module - "$APPROVED_COMMIT" "$state" <<'JS'
 import fs from 'node:fs';
+import {parseAllDocuments,stringify} from 'yaml';
 const [revision, state] = process.argv.slice(2);
 const source = fs.readFileSync('deploy/argocd/applications.yaml', 'utf8');
 if ((source.match(/REPLACE_WITH_REVIEWED_PACKAGING_COMMIT/g) ?? []).length !== 2) {
   throw Error('Expected exactly two explicit revision markers');
 }
+const applications=parseAllDocuments(source.replaceAll('REPLACE_WITH_REVIEWED_PACKAGING_COMMIT',revision)).map(d=>d.toJS());
+const bot=applications.find(a=>a.metadata.name==='telegram-pi');
+if(!bot?.spec.source.helm.valueFiles.includes('values-live.yaml')) throw Error('Expected explicit live inputs before fixture selection');
+bot.spec.source.helm.valueFiles=['values-kind.yaml'];
 fs.writeFileSync(`${state}/applications-approved.yaml`,
-  source.replaceAll('REPLACE_WITH_REVIEWED_PACKAGING_COMMIT', revision), {mode: 0o600});
+  applications.map(a=>stringify(a)).join('---\n'), {mode: 0o600});
 JS
 "${k[@]}" apply --server-side --field-manager=telegram-pi-reviewed-applications \
   -f "$state/applications-approved.yaml"

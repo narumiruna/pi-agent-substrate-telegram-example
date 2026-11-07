@@ -99,6 +99,60 @@ describe("deployment packaging", () => {
     })
   })
 
+  it("selects approved live endpoints without changing the fixture inputs or exposing credentials", () => {
+    const live = parse(readFileSync(resolve(chart, "values-live.yaml"), "utf8"))
+    const text = render(["-f", resolve(chart, "values-live.yaml")])
+    const objects = decode(text)
+    const gateway = resource(text, "Deployment").spec.template.spec
+    const configured = envMap(gateway.containers[0].env)
+    expect(configured).toMatchObject({
+      TELEGRAM_API_BASE_URL: "https://api.telegram.org",
+      TELEGRAM_ALLOWED_USER_IDS: "102825484",
+      OPENAI_BASE_URL: "https://national-team.openai.azure.com/openai/v1",
+      OPENAI_MODEL: "gpt-5.6-luna",
+      OPENAI_MODEL_METADATA: "gpt-5.6-luna",
+      OPENAI_API_KEY: "substrate-egress-placeholder",
+      ACTOR_TEMPLATE: "pi-v3-live",
+      DEVELOPMENT_HOSTS: "",
+      LLM_CREDENTIAL_URI:
+        "ate-secret://k8s.io/default/telegram-pi-llm/openai-fixture/OPENAI_API_KEY",
+    })
+    expect(objects.some((o) => o.kind === "Secret")).toBe(false)
+    expect(text).not.toMatch(/synthetic-api\.|development-api\./)
+    expect(values.telegram.apiBaseUrl).toBe("https://synthetic-api.telegram-pi-fixtures.svc")
+    expect(values.openai.baseUrl).toBe("https://synthetic-api.telegram-pi-fixtures.svc/openai/v1")
+    expect(values.substrate.actorTemplate).toBe("pi-v3-kind")
+    const template = buildActorTemplate({
+      ...templateConfig(),
+      name: live.substrate.actorTemplate,
+      openAIBaseUrl: live.openai.baseUrl,
+      openAIModel: live.openai.model,
+      openAIModelMetadata: live.openai.modelMetadata,
+    })
+    expect(envMap(template.containers[0].env).OPENAI_BASE_URL).toBe(live.openai.baseUrl)
+    const policy = buildActorEgressPolicy(values.substrate.atespace, {
+      openAIBaseUrl: live.openai.baseUrl,
+      llmCredentialUri: values.openai.credentialUri,
+      developmentHosts: live.developmentHosts,
+    })
+    expect(policy.rules).toHaveLength(1)
+    expect(policy.rules[0].https?.hostnames).toEqual(["national-team.openai.azure.com"])
+    expect(policy.rules[0].https?.effects?.replaceHeaders).toEqual([
+      { header: "Authorization", prefix: "Bearer ", credentialUri: values.openai.credentialUri },
+    ])
+    expect(objects.filter((o) => o.kind === "Job").map((o) => o.metadata.name)).not.toEqual(
+      decode(render())
+        .filter((o) => o.kind === "Job")
+        .map((o) => o.metadata.name),
+    )
+    const applications = decode(
+      readFileSync(resolve(root, "deploy/argocd/applications.yaml"), "utf8"),
+    )
+    expect(
+      applications.find((o) => o.metadata.name === "telegram-pi").spec.source.helm.valueFiles,
+    ).toEqual(["values-kind.yaml", "values-live.yaml"])
+  })
+
   it("orders workers, owner migration, ready template, then Gateway", () => {
     const text = render()
     const objects = decode(text)

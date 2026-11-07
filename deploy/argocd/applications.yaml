@@ -37,7 +37,7 @@ spec:
     path: charts/telegram-pi
     helm:
       releaseName: telegram-pi
-      valueFiles: [values-kind.yaml]
+      valueFiles: [values-kind.yaml, values-live.yaml]
   destination:
     server: https://kubernetes.default.svc
     namespace: telegram-pi
