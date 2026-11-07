@@ -70,7 +70,7 @@ spec:
             matchLabels:
               app: ate-api-server
       ports:
-        - {protocol: TCP, port: 8443}
+        - {protocol: TCP, port: 443}
 ---
 # Telegram HTTPS destinations are checked by application configuration and TLS.
 # NetworkPolicy cannot enforce an HTTPS hostname allowlist.

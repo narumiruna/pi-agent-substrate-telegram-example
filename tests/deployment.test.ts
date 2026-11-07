@@ -72,6 +72,9 @@ describe("deployment packaging", () => {
     const objects = decode(text)
     const gateway = resource(text, "Deployment")
     expect(objects.filter((o) => o.kind === "Deployment")).toHaveLength(1)
+    expect(resource(text, "NetworkPolicy", "telegram-pi-api").spec.egress[0].ports).toEqual([
+      { protocol: "TCP", port: 443 },
+    ])
     expect(gateway.spec.replicas).toBe(1)
     expect(gateway.spec.strategy).toEqual({ type: "Recreate" })
     expect(
