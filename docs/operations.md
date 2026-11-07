@@ -110,7 +110,7 @@ Actor endpoints are internal Router endpoints:
 - `POST /v1/submissions` accepts `{requestId,text}` and returns a durable submission receipt. `requestId` is `telegram:<bot_id>:<update_id>`.
 - `GET /v1/submissions?requestId=...` returns the existing receipt. Status lookup does not create a root conversation.
 - `GET /v1/quiescence` checks all Harness tasks, including sleeping retries and background compaction.
-- `/healthz`, `/warmup`, and `/wakeup` do not initialize writable Pi state. Golden snapshots contain no conversation or provider session identity.
+- `/healthz`, `/warmup`, and `/wakeup` do not initialize writable Pi state. Golden snapshots contain no conversation or provider session identity. New roots explicitly set Pi ProviderDoc to a UUIDv5 derived from the actual Actor UID. The default Pi uuidv7 generator can clone its cached entropy in a warm snapshot; parallel Actor starts reproduced a provider-session collision. Existing persisted provider IDs are never rewritten automatically. Runtime instance IDs also include the Actor UID and use uncached entropy.
 
 | Limit                                          | Value                                                   |
 | ---------------------------------------------- | ------------------------------------------------------- |

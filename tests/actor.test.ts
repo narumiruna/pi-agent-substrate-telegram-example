@@ -201,6 +201,11 @@ describe("Pi Durable Actor", () => {
       expect(sessionIds).toHaveLength(2)
       expect(sessionIds[0]).not.toBe("missing")
       expect(sessionIds[0]).not.toBe(sessionIds[1])
+      expect(
+        sessionIds.every((id) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id),
+        ),
+      ).toBe(true)
       other = new ActorRuntime(a.options)
       await expect(other.status(requestId)).rejects.toMatchObject({ code: "already_open" })
       await a.runtime.close()
