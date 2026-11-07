@@ -2,7 +2,7 @@
 
 ## Implementation status
 
-The Gateway, Pi Durable Actor, PostgreSQL store, and deployment resources are implemented. Packaged Argo CD validation is in progress. This is not an accepted live Telegram or production deployment. Keep the saved plan open until its required checks pass.
+The implementation and isolated local validation are complete. The packaged application passes Argo CD reconciliation, parallel Actor isolation, Gateway restart, checkpoint-gated delivery, and actual remote memory and cold restores. This does not establish live Telegram, Azure, or production acceptance.
 
 No real Telegram or model request is authorized by the local test procedure. Do not use the existing `kind-kind` context or shared `kind-registry` container.
 
@@ -12,6 +12,8 @@ No real Telegram or model request is authorized by the local test procedure. Do 
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
 | Node / npm                 | 26.8.2 / 11.19.1                                                                               |
 | Pi Durable / Pi AI / Chord | 1.5.0, exact published packages                                                                |
+| Actor HTTP transport       | Undici 8.12.4; projected trust reread for each provider request                                |
+| Actor Git / curl           | Git 2.39.5 / curl 7.88.1, in the digest-pinned local Actor image                               |
 | PostgreSQL client          | pg 8.23.1                                                                                      |
 | gRPC / protobuf runtime    | grpc-js 1.14.7 / @bufbuild/protobuf 2.14.1                                                     |
 | Protobuf generators        | ts-proto 2.18.4 / grpc-tools 1.13.1                                                            |
@@ -69,7 +71,7 @@ All upstream paths in this section refer to the selected Substrate commit. The a
 | Fixture origin CA                                   | Test-only platform integration adds fixture origin trust to egress without removing public roots or hostname validation. This differs from Actor trust in the MITM CA. Retain this change across reconciliation.                                                                               |
 | Telemetry                                           | Upstream kind overlay installs its OTEL ConfigMap, collector, Prometheus, and Jaeger. The ConfigMap must exist before component startup.                                                                                                                                                       |
 
-The installer is an explicit local bootstrap boundary, not proof of complete GitOps. Separate platform/Bot Argo CD reconciliation remains an implementation requirement. Never run upstream `hack/create-kind-cluster.sh` or its broad cleanup helper: they can replace the shared registry or cluster/network resources.
+The installer is an explicit local bootstrap boundary, not proof of complete GitOps. Both platform/Bot Argo CD Applications are verified locally after these prerequisites; they do not replace bootstrap ownership. Never run upstream `hack/create-kind-cluster.sh` or its broad cleanup helper: they can replace the shared registry or cluster/network resources.
 
 ## Identity and network contracts
 
@@ -160,6 +162,31 @@ Cleanup checks the saved Docker node ID and registry ownership label before remo
 
 ## Verification record
 
+Final packaged run: `3231e27957db65a3`, exit `0`, reviewed runtime revision `7bb4b3a1b5ccfb44eda408778ac187a7e499c31e`. Evidence remains under `.cache/e2e/3231e27957db65a3/`. Final documentation-only changes do not alter the verified source, chart, or platform artifacts.
+
+- Both Argo Applications reached `Synced`, `Healthy`, and `Succeeded` at the same immutable revision before testing and after two repeat syncs.
+- Three fresh chat/topic Actors shared exactly two workers; observed occupancy never exceeded two. Their files, raw Pi history, and UUIDv5 provider identities remained separate.
+- Gateway Pod replacement occurred after accepted-input commit and while outbox replies were blocked on checkpoints. All three jobs completed and their exact checkpoint receipts unlocked delivery. Reuse retained mappings, cursor, history, files, and provider IDs without duplicating finished seed submissions.
+- Rejected updates created no jobs, Actors, or model work. The production Pi OpenAI adapter completed tool turns through verified HTTPS and credential injection.
+- Development HTTPS succeeded without Authorization injection. A denied authority returned explicit `403 egress denied`, with successful allowed controls before and after. Actual Kubernetes Secret GETs permitted the provider's one fixture LLM Secret and rejected both Bot and RustFS credentials.
+- Public CA hashes and application database state matched across repeat reconciliation. Earlier failed validation records were retained, not reset or replayed.
+
+| Final remote restore                     | MEMORY                                 | Cold VOLUMES                           |
+| ---------------------------------------- | -------------------------------------- | -------------------------------------- |
+| Actor UID                                | `16b238cd-bfc1-4b96-a472-f049daed2dae` | `7e9d9e30-04ad-442a-be10-4aee9deb97ff` |
+| Private generation 2 UUID                | `670ae1ee-d6bb-4848-a29f-01627c96c358` | `24050230-a213-4d31-8228-578339d03781` |
+| Actual fidelity                          | MEMORY                                 | VOLUMES                                |
+| WAL before checkpoint                    | 749872 bytes                           | 749872 bytes                           |
+| Sentinel before checkpoint               | Absent from main file; present in WAL  | Absent from main file; present in WAL  |
+| Process instance after restore           | Unchanged                              | Changed                                |
+| Provider/root IDs, history and workspace | Preserved                              | Preserved                              |
+| SQLite integrity                         | `ok` before and after                  | `ok` before and after                  |
+| Exact-UUID remote file downloads         | 11                                     | 4                                      |
+
+Both used the exact packaged Actor image in `values-kind.yaml`, not a diagnostic image derivative. Revert was used only after the latest private remote snapshot completed. Local checkpoint absence and exact restore trace/file evidence establish remote reads.
+
+Earlier discovery evidence:
+
 - Baseline `npm ci`: passed. Baseline `npm run ci`: failed at Biome formatting; tests/build did not run through that gate. Formatting corrections do not waive the gate.
 - Exact dependency clean install, strict test typecheck, SQLite probe, and generated-client build: passed.
 - Pinned-schema regeneration and 16 loopback protobuf/gRPC contract tests: passed. These are not authentication tests.
@@ -171,8 +198,41 @@ Cleanup checks the saved Docker node ID and registry ownership label before remo
   - MEMORY Actor UID `d3ba0f2e-f048-4789-8e95-0970177a98ef`, private generation 2 UUID `6adc7295-7cb9-491c-8ee7-2c2e13a1a165`: process instance retained; 11 remote logical files verified.
   - Cold Actor UID `2b3736d2-3800-4eb1-804a-db3b0cc207c5`, VOLUMES generation 2 UUID `bc30b771-9a93-4fe4-b0ab-d103ef81ba80`: process instance changed; 4 remote logical files verified.
   - Exact latest completed Actor-owned snapshots were reverted only after upload completion. Local checkpoint removal and PRIVATE snapshot sharing excluded the shared cache path. Restore trace IDs and file-size sets correlate plugin downloads with those UUIDs.
-- Current source gates: `npm run ci` passes 249 default tests, 7 HTTPS fixture tests, strict type checks, Biome, and build. The separate PostgreSQL harness passes 113 cases across five suites. Offline E2E safety and bootstrap checks pass 10 cases. Review fixes cover suspend workflow re-entry, capacity after restart, partial-effect timeout/write failures, corrected edit validation, text admission, trust refresh, and explicit permanent provisioning recovery.
-- Production Actor and Gateway image builds and local pushes pass. Helm lint, 21 deployment tests, pinned platform reproduction, and server-side dry-runs pass. The final PostgreSQL run passes 110 cases across five suites. Packaged Argo CD reconciliation remains open. Do not interpret the focused checks as task 12 completion.
+- Current source gates: `npm run ci` passes 251 default tests, 9 HTTPS fixture tests, strict type checks, Biome, and build. The separate PostgreSQL harness passes 113 cases across five suites. Offline E2E safety and bootstrap checks pass 10 cases. Review fixes cover suspend workflow re-entry, capacity after restart, partial-effect timeout/write failures, corrected edit validation, text admission, trust refresh, and explicit permanent provisioning recovery.
+- Production Actor and Gateway image builds and local pushes pass. Helm lint, 21 deployment tests, pinned platform reproduction, and server-side dry-runs pass. The final PostgreSQL run passes 110 cases across five suites. The final packaged run above completes the local runtime gate. GitHub CI also passes; live external acceptance remains separate.
+
+## Isolated validation sequence
+
+Use the commands above for a new owned cluster. Then run the focused platform gates:
+
+```sh
+bash scripts/install-kind-policy.sh
+bash scripts/test-kind-policy.sh
+bash scripts/kind-smoke.sh
+bash scripts/bootstrap-application-kind.sh
+bash scripts/kind-fixtures.sh build
+bash scripts/kind-fixtures.sh deploy
+bash scripts/kind-fixtures.sh check
+node tests/identity/run.mjs --task3-ready
+node tests/actor/run.mjs --identity-gate-ready
+bash scripts/prepare-application-db-kind.sh
+bash scripts/prepare-argocd-kind.sh
+bash scripts/adopt-platform-kind.sh
+```
+
+The explicit flags record a verified prerequisite; they do not bypass it. The focused Actor runner retains its client Pod and refuses to replace it. Archive evidence before removing only that owned test Pod for another run.
+
+Follow [Argo bootstrap](../tests/kind/argocd-bootstrap.md) for immutable commit selection and initial ordered synchronization. Run [packaged E2E](../tests/e2e/README.md) only after both Applications are healthy at that reviewed commit. The ordinary migration and provisioning Jobs use configuration-derived names. Before removing an old configuration's terminal Jobs, archive their records and logs and confirm no accepted work is active. Never prune runtime Actors, templates, snapshots, signing pools, or storage to clear application health.
+
+The initial Argo adoption exposed missing installer flags and a literal-to-Secret transition. The retained generator now preserves the API bootstrap owner and IDP issuer. The adoption script verifies unchanged RustFS credential values before replacing references; repeated adoption makes no changes. Server-side dry-run alone did not find these runtime failures.
+
+The first packaged probe failed before network access because a package exposes only ESM imports. A later parallel run completed and delivered three jobs but exposed duplicated Pi provider session IDs. Both failures remain in ignored local evidence. The fixed Actor uses a new immutable template; old validation Actors and their persisted provider IDs are not automatically rewritten or reused as proof.
+
+## Private Secret setup
+
+The local preparation scripts create only synthetic fixture credentials under private `.cache/` directories and existing Kubernetes Secret references. Never copy these values into a real deployment.
+
+For an approved non-local target, the operator must create the two separate database logins and provide their URLs in separate existing Secrets. Supply the Bot token and model key from private files with mode `0600`, using `kubectl create secret generic --from-file` with the explicitly approved kubeconfig, context, namespace, and key names. Do not place values in shell arguments, chart values, command history, Git, images, or chat. Label the LLM Secret for the provider policy and retain its one-Secret read Role. The Bot Secret must remain outside that namespace. The application chart does not create or rotate these Secrets.
 
 ## External handoff
 

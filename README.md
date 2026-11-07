@@ -4,7 +4,7 @@ A Telegram long-polling Gateway with isolated Pi Durable Actors on Agent Substra
 
 The Gateway stores accepted updates and replies in PostgreSQL. Each chat or topic uses one Pi Durable Actor with SQLite and a workspace in Substrate durable storage. Replies wait for a confirmed remote checkpoint.
 
-Packaged Argo CD validation is in progress. Real Telegram and Azure integration remain operator checks; no production readiness is claimed.
+Isolated kind validation passes, including Argo CD reconciliation, Gateway restart, parallel Actor isolation, and remote memory/cold restores. Real Telegram and Azure integration remain operator checks; no production readiness is claimed.
 
 ## Checks
 
@@ -28,4 +28,4 @@ This is a private application, not an npm package. There is no publication or re
 
 Read [operations](docs/operations.md) before creating resources. The local harness uses a separate cluster, registry, and kubeconfig. Never use the existing `kind-kind` context as a test target.
 
-See [architecture](docs/architecture.md) and the [implementation plan](docs/plans/2026-11-07_telegram-pi-plan.md) for the required runtime and recovery checks.
+See [architecture](docs/architecture.md) for the design and [operations](docs/operations.md) for verified commands, recovery evidence, limits, and external handoff.

@@ -1,6 +1,6 @@
 # Telegram Pi Actor Architecture
 
-Status: Implemented application design. Focused runtime checks pass on an isolated kind cluster. Complete packaged Argo CD validation is in progress; see [operations.md](operations.md) for evidence and restrictions.
+Status: Implemented and verified on an isolated kind cluster, including packaged Argo CD reconciliation and remote memory/cold restores. See [operations.md](operations.md) for evidence and live-deployment restrictions.
 
 ## Confirmed decisions
 
@@ -117,7 +117,7 @@ The Gateway needs an authenticated identity accepted by the Router's ingress all
 
 Use `telegram:<bot_id>:<update_id>` as the Pi Durable submission's `requestId`. Submit through the Actor's existing root conversation. Pi Durable returns the existing submission when that request is retried against the same persisted state. Reattach to that submission instead of implementing a separate completed-job ledger or submitting new work. A recovered dispatcher must not start another run while the previous run may still be active.
 
-The proposed completion boundary is:
+The completion boundary is:
 
 1. Pi Durable settles the submission and commits its final answer and task outcome to SQLite.
 2. The Gateway saves the result and an outbox entry that is not yet eligible for delivery.
