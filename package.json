@@ -31,7 +31,7 @@
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
     "@earendil-works/chord": "1.5.0",
-    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.2",
     "@earendil-works/pi-durable": "1.5.0",
     "@grpc/grpc-js": "1.14.7",
     "pg": "8.23.1",
